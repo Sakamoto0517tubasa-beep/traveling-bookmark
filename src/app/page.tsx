@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Plus, Users, Calendar } from "lucide-react";
+import { MapPin, Plus, Users, Calendar, Trash2 } from "lucide-react";
 import { hasSupabase } from "@/lib/supabase";
-import { listTrips } from "@/lib/db";
+import { listTrips, deleteTrip } from "@/lib/db";
 import type { Trip } from "@/lib/types";
 import CreateTripModal from "@/components/CreateTripModal";
 
@@ -37,6 +37,21 @@ export default function Home() {
   useEffect(() => {
     load();
   }, []);
+
+  async function removeTrip(t: Trip) {
+    if (
+      !confirm(
+        `「${t.name}」を削除しますか？\nこの旅行のスポット・しおり・持ち物・お土産なども全て消えます。元に戻せません。`,
+      )
+    )
+      return;
+    try {
+      await deleteTrip(t.id);
+      setTrips((prev) => (prev ? prev.filter((x) => x.id !== t.id) : prev));
+    } catch (e) {
+      alert("削除に失敗しました：" + (e as Error).message);
+    }
+  }
 
   return (
     <main className="mx-auto min-h-dvh max-w-2xl bg-background pb-28">
@@ -92,10 +107,13 @@ export default function Home() {
         ) : (
           <ul className="grid gap-3">
             {trips.map((t) => (
-              <li key={t.id}>
-                <button
+              <li key={t.id} className="relative">
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => router.push(`/trip/${t.id}`)}
-                  className="w-full overflow-hidden rounded-md border border-line bg-white text-left transition-shadow hover:shadow-sm"
+                  onKeyDown={(e) => e.key === "Enter" && router.push(`/trip/${t.id}`)}
+                  className="w-full cursor-pointer overflow-hidden rounded-md border border-line bg-white text-left transition-shadow hover:shadow-sm"
                 >
                   <div className="relative h-28 bg-navy">
                     {t.cover_photo ? (
@@ -122,6 +140,17 @@ export default function Home() {
                       )}
                     </div>
                   </div>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeTrip(t);
+                  }}
+                  className="absolute right-2 top-2 rounded-full bg-black/40 p-2 text-white backdrop-blur transition-colors hover:bg-rose-500"
+                  title="この旅行を削除"
+                  aria-label={`${t.name}を削除`}
+                >
+                  <Trash2 className="size-4" />
                 </button>
               </li>
             ))}
