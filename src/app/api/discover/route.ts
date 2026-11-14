@@ -17,8 +17,6 @@ const CATEGORY_CONFIG: Record<string, { types?: string[]; keyword?: string }> = 
   landmark: { types: ["tourist_attraction"] }, // 景観・ランドマーク
 };
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 type RawPlace = {
   place_id: string;
   name: string;
@@ -32,42 +30,31 @@ type RawPlace = {
   geometry: { location: { lat: number; lng: number } };
 };
 
-// 1つの検索条件（type または keyword）で最大2ページ取得
+// 1つの検索条件（type または keyword）で1ページ取得（高速化のためページングはしない）
 async function fetchQuery(
   lat: string,
   lng: string,
   radius: number,
   q: { type?: string; keyword?: string },
 ): Promise<RawPlace[]> {
-  const out: RawPlace[] = [];
   const params =
     `location=${lat},${lng}&radius=${radius}&language=ja` +
     (q.type ? `&type=${q.type}` : "") +
     (q.keyword ? `&keyword=${encodeURIComponent(q.keyword)}` : "") +
     `&key=${GOOGLE_MAPS_KEY}`;
-  let url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?${params}`;
-  for (let page = 0; page < 2; page++) {
-    try {
-      const res = await fetch(url);
-      const data = (await res.json()) as {
-        status: string;
-        results?: RawPlace[];
-        next_page_token?: string;
-      };
-      if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-        console.error("Discover API error:", data.status);
-        break;
-      }
-      out.push(...(data.results ?? []));
-      if (!data.next_page_token) break;
-      await sleep(2000); // next_page_token は発行直後は使えない
-      url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?pagetoken=${data.next_page_token}&key=${GOOGLE_MAPS_KEY}`;
-    } catch (e) {
-      console.error("Discover fetch error:", e);
-      break;
+  const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?${params}`;
+  try {
+    const res = await fetch(url);
+    const data = (await res.json()) as { status: string; results?: RawPlace[] };
+    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+      console.error("Discover API error:", data.status);
+      return [];
     }
+    return data.results ?? [];
+  } catch (e) {
+    console.error("Discover fetch error:", e);
+    return [];
   }
-  return out;
 }
 
 // 地図で見ているエリアの観光施設を分類別にまとめて取得。

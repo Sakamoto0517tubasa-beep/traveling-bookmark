@@ -32,6 +32,11 @@ const DISCOVER_CATS: DiscoverCat[] = [
   { key: "landmark", label: "ランドマーク", color: "#0D9488", spotCat: "sightseeing" },
 ];
 
+// 発見結果の簡易キャッシュ（カテゴリ＋おおよその中心＋ズームごと）。再表示を即時に。
+// ※この TripMap は "Map" を地図コンポーネントとして import しているため、
+//   組み込みの Map ではなくプレーンオブジェクトで持つ。
+const discoverCache: Record<string, NearbyPlace[]> = {};
+
 function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -165,19 +170,28 @@ function Discovery({
           50000,
           Math.round(distanceMeters(c.lat(), c.lng(), ne.lat(), ne.lng())),
         );
+        // キャッシュがあれば即表示（通信なし）
+        const key = `${categoryKey}|${c.lat().toFixed(2)}|${c.lng().toFixed(2)}|${Math.round(map.getZoom() ?? 0)}`;
+        const cached = discoverCache[key];
+        if (cached) {
+          if (active) setPlaces(cached);
+          return;
+        }
         onLoadingChange?.(true);
         try {
           const res = await fetch(
             `/api/discover?lat=${c.lat()}&lng=${c.lng()}&radius=${radius}&category=${categoryKey}`,
           );
           const data = (await res.json()) as NearbyPlace[];
-          if (active) setPlaces(Array.isArray(data) ? data : []);
+          const list = Array.isArray(data) ? data : [];
+          discoverCache[key] = list;
+          if (active) setPlaces(list);
         } catch {
           if (active) setPlaces([]);
         } finally {
           if (active) onLoadingChange?.(false);
         }
-      }, 400);
+      }, 200);
     };
     run();
     const listener = map.addListener("idle", run);
