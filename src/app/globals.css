@@ -1,26 +1,49 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f3f4f6;
+  --foreground: #17171d;
+  --brand: #d81f41;      /* 旅行っぽい朱赤（やや深め） */
+  --brand-dark: #b4142f;
+  --navy: #16213a;
+  --line: #d7dbe3;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-navy: var(--navy);
+  --color-line: var(--line);
+  /* 日本語フォントを先頭に。Win は BIZ UDPGothic / Yu Gothic Medium、Mac は Hiragino */
+  --font-sans: "Hiragino Kaku Gothic ProN", "Hiragino Sans",
+    "BIZ UDPGothic", "Yu Gothic Medium", "YuGothic", "Yu Gothic UI",
+    "Meiryo", system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  /* 日本語の約物を詰めて、本物の日本語サイトらしい字面に */
+  font-feature-settings: "palt" 1;
+  letter-spacing: 0.02em;
+  line-height: 1.65;
+  text-rendering: optimizeLegibility;
+}
+
+/* 見出しは少し詰めて力強く */
+h1,
+h2,
+h3 {
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+}
+
+/* 数字を見やすく（等幅） */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
