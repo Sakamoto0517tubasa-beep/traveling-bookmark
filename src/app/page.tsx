@@ -44,7 +44,7 @@ export default function Home() {
       <header className="sticky top-0 z-10 border-b border-line bg-navy px-5 py-4 text-white">
         <div className="flex items-center gap-2">
           <MapPin className="size-5 text-brand" />
-          <h1 className="text-lg font-bold tracking-tight">traveling bookmark</h1>
+          <h1 className="text-lg font-bold tracking-tight">KOR</h1>
         </div>
         <p className="mt-0.5 text-xs text-white/60">ふたりの旅のしおり</p>
       </header>
