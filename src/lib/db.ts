@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "./supabase";
+import { countryCodeFromAddress } from "./countries";
 import type {
   Trip,
   Spot,
@@ -59,6 +60,27 @@ export async function updateTrip(id: string, patch: Partial<Trip>) {
 export async function deleteTrip(id: string) {
   const { error } = await supabase.from("om_trips").delete().eq("id", id);
   if (error) throw error;
+}
+
+// 各旅行の最初のスポットの住所から国コード（ISO2）を推定して返す
+export async function getTripCountryCodes(
+  tripIds: string[],
+): Promise<Record<string, string>> {
+  if (tripIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from("om_spots")
+    .select("trip_id,address,order_index,created_at")
+    .in("trip_id", tripIds)
+    .order("order_index", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  const out: Record<string, string> = {};
+  for (const row of (data ?? []) as { trip_id: string; address: string | null }[]) {
+    if (out[row.trip_id]) continue;
+    const code = countryCodeFromAddress(row.address);
+    if (code) out[row.trip_id] = code;
+  }
+  return out;
 }
 
 // ---- Spot ----

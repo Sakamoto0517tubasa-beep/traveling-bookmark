@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Plus, Users, Calendar, Trash2 } from "lucide-react";
 import { hasSupabase } from "@/lib/supabase";
-import { listTrips, deleteTrip } from "@/lib/db";
+import { listTrips, deleteTrip, getTripCountryCodes } from "@/lib/db";
+import { flagUrl } from "@/lib/countries";
 import type { Trip } from "@/lib/types";
 import CreateTripModal from "@/components/CreateTripModal";
 
@@ -18,6 +19,7 @@ function fmtRange(s: string | null, e: string | null): string {
 export default function Home() {
   const router = useRouter();
   const [trips, setTrips] = useState<Trip[] | null>(null);
+  const [countries, setCountries] = useState<Record<string, string>>({});
   const [showCreate, setShowCreate] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +29,13 @@ export default function Home() {
       return;
     }
     try {
-      setTrips(await listTrips());
+      const list = await listTrips();
+      setTrips(list);
+      try {
+        setCountries(await getTripCountryCodes(list.map((t) => t.id)));
+      } catch {
+        /* 国旗が取れなくても一覧は表示する */
+      }
     } catch (e) {
       setError((e as Error).message);
       setTrips([]);
@@ -119,6 +127,16 @@ export default function Home() {
                     {t.cover_photo ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={t.cover_photo} alt="" className="size-full object-cover" />
+                    ) : countries[t.id] ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={flagUrl(countries[t.id])}
+                          alt=""
+                          className="size-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/15" />
+                      </>
                     ) : (
                       <div className="flex size-full items-center justify-center bg-gradient-to-br from-navy to-brand/70">
                         <MapPin className="size-7 text-white/40" />
