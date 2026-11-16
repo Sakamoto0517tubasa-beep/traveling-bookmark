@@ -23,6 +23,7 @@ import { hasSupabase } from "@/lib/supabase";
 import {
   getTrip,
   listSpots,
+  deleteSpot,
   listExpenses,
   addExpense,
   deleteExpense,
@@ -238,7 +239,17 @@ function TripView() {
             ) : (
               <ul className="grid gap-2">
                 {spots.map((s) => (
-                  <SpotCard key={s.id} spot={s} trip={trip} onClick={() => router.push(`/trip/${id}/spot/${s.id}`)} />
+                  <SpotCard
+                    key={s.id}
+                    spot={s}
+                    trip={trip}
+                    onClick={() => router.push(`/trip/${id}/spot/${s.id}`)}
+                    onDelete={async () => {
+                      if (!confirm(`「${s.name}」を削除しますか？`)) return;
+                      await deleteSpot(s.id);
+                      await load();
+                    }}
+                  />
                 ))}
               </ul>
             )}
@@ -295,14 +306,29 @@ function TripView() {
 }
 
 // ---- スポットカード ----
-function SpotCard({ spot, trip, onClick }: { spot: Spot; trip: Trip; onClick: () => void }) {
+function SpotCard({
+  spot,
+  trip,
+  onClick,
+  onDelete,
+}: {
+  spot: Spot;
+  trip: Trip;
+  onClick: () => void;
+  onDelete: () => void;
+}) {
   const meta = CATEGORY_META[spot.category];
   const cost = (spot.admission_fee || 0) + (spot.hotel_fee || 0);
   return (
     <li>
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onClick}
-        className="flex w-full items-center gap-3 rounded-md border border-line bg-white p-2.5 text-left hover:bg-gray-50"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") onClick();
+        }}
+        className="flex w-full cursor-pointer items-center gap-3 rounded-md border border-line bg-white p-2.5 text-left hover:bg-gray-50"
       >
         {spot.photo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -338,7 +364,18 @@ function SpotCard({ spot, trip, onClick }: { spot: Spot; trip: Trip; onClick: ()
             <p className="tnum text-[10px] text-gray-400">{formatYen(toYen(cost, trip.currency_rate))}</p>
           </div>
         )}
-      </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="shrink-0 rounded-full p-2 text-gray-300 hover:bg-red-50 hover:text-brand"
+          title="このスポットを削除"
+          aria-label="このスポットを削除"
+        >
+          <Trash2 className="size-4" />
+        </button>
+      </div>
     </li>
   );
 }
