@@ -279,7 +279,7 @@ function TripView() {
                 <p className="mt-1 text-xs text-gray-400">「追加」から場所を検索して登録しましょう</p>
               </div>
             ) : (
-              <ul className="grid gap-2">
+              <ul className="grid grid-cols-1 gap-2">
                 {[...spots]
                   .sort(
                     (a, b) =>
