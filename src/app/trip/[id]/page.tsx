@@ -330,7 +330,7 @@ function TripView() {
       )}
       {tab === "links" && <LinksTab trip={trip} />}
       {tab === "packing" && <PackingTab trip={trip} />}
-      {tab === "info" && <CountryInfoTab spots={spots} />}
+      {tab === "info" && <CountryInfoTab spots={spots} trip={trip} />}
 
       {/* 下タブ */}
       <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto flex max-w-2xl border-t border-line bg-white">
@@ -1165,7 +1165,7 @@ function PackingTab({ trip }: { trip: Trip }) {
 }
 
 // ---- 現地（国の基本情報）----
-function CountryInfoTab({ spots }: { spots: Spot[] }) {
+function CountryInfoTab({ spots, trip }: { spots: Spot[]; trip: Trip }) {
   // スポットの住所から国コードを推定（最初に見つかったもの）
   let code: string | null = null;
   for (const s of spots) {
@@ -1191,15 +1191,41 @@ function CountryInfoTab({ spots }: { spots: Spot[] }) {
   const rows: { emoji: string; label: string; value: string }[] = info
     ? [
         { emoji: "💶", label: "通貨", value: info.currency },
+        ...(info.language ? [{ emoji: "🗣️", label: "言語", value: info.language }] : []),
         { emoji: "🔌", label: "電圧・プラグ", value: info.plug },
         { emoji: "💁", label: "チップ", value: info.tipping },
+        ...(info.payment ? [{ emoji: "💳", label: "支払い", value: info.payment }] : []),
         { emoji: "🚨", label: "緊急番号", value: info.emergency },
         { emoji: "🚰", label: "水道水", value: info.water },
         { emoji: "🕐", label: "日本との時差", value: info.timeDiff },
+        ...(info.bestSeason
+          ? [{ emoji: "🌸", label: "ベストシーズン", value: info.bestSeason }]
+          : []),
         { emoji: "🛂", label: "ビザ（観光）", value: info.visa },
         { emoji: "💡", label: "ひとことメモ", value: info.tips },
       ]
     : [];
+
+  // お役立ちリンク
+  const links = [
+    {
+      label: "外務省 海外安全ホームページ",
+      sub: "治安・渡航情報の最新チェック",
+      url: "https://www.anzen.mofa.go.jp/",
+    },
+    {
+      label: "Google 翻訳",
+      sub: info?.language ? `日本語 ⇄ ${info.language}` : "現地のことばに翻訳",
+      url: info?.langCode
+        ? `https://translate.google.com/?sl=ja&tl=${info.langCode}&op=translate`
+        : "https://translate.google.com/",
+    },
+    {
+      label: "通貨レートを調べる",
+      sub: `1 ${trip.currency_code} は何円？`,
+      url: `https://www.google.com/search?q=${encodeURIComponent(`1 ${trip.currency_code} 円`)}`,
+    },
+  ];
 
   return (
     <section className="space-y-4 p-4">
@@ -1221,6 +1247,26 @@ function CountryInfoTab({ spots }: { spots: Spot[] }) {
 
       {info ? (
         <>
+          {/* 現地語のあいさつ */}
+          {info.hello && info.thanks && (
+            <div className="rounded-md border border-brand/20 bg-rose-50 p-4">
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-brand">
+                💬 現地のあいさつ
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-md bg-white p-2.5 text-center">
+                  <p className="text-[11px] text-gray-400">こんにちは</p>
+                  <p className="mt-0.5 text-sm font-bold text-gray-800">{info.hello}</p>
+                </div>
+                <div className="rounded-md bg-white p-2.5 text-center">
+                  <p className="text-[11px] text-gray-400">ありがとう</p>
+                  <p className="mt-0.5 text-sm font-bold text-gray-800">{info.thanks}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 基本情報リスト */}
           <div className="overflow-hidden rounded-md border border-line bg-white">
             {rows.map((r, i) => (
               <div
@@ -1235,6 +1281,29 @@ function CountryInfoTab({ spots }: { spots: Spot[] }) {
               </div>
             ))}
           </div>
+
+          {/* お役立ちリンク */}
+          <div className="overflow-hidden rounded-md border border-line bg-white">
+            <p className="border-b border-line px-4 py-2.5 text-xs font-bold text-gray-500">
+              お役立ちリンク
+            </p>
+            {links.map((l) => (
+              <a
+                key={l.label}
+                href={l.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 border-b border-line px-4 py-3 last:border-b-0 hover:bg-gray-50"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-navy">{l.label}</p>
+                  <p className="truncate text-[11px] text-gray-400">{l.sub}</p>
+                </div>
+                <ExternalLink className="size-4 shrink-0 text-gray-300" />
+              </a>
+            ))}
+          </div>
+
           <p className="px-1 text-[11px] leading-relaxed text-gray-400">
             ※ 情報は目安です。ビザ・治安・入国ルールは変わることがあるので、渡航前に外務省
             「海外安全ホームページ」などで最新情報を確認してください。

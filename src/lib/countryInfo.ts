@@ -12,6 +12,33 @@ export type CountryInfo = {
   timeDiff: string; // 日本との時差
   visa: string; // ビザ（日本国籍・短期観光）
   tips: string; // ひとことメモ
+  // --- 追加（任意）---
+  language?: string; // 公用語
+  langCode?: string; // Google翻訳用の言語コード
+  hello?: string; // 現地語「こんにちは」
+  thanks?: string; // 現地語「ありがとう」
+  payment?: string; // 支払い事情（現金・カード）
+  bestSeason?: string; // ベストシーズン
+};
+
+// 追加情報（あいさつ・言語・支払い・ベストシーズン）。基本情報にマージして使う。
+const COUNTRY_EXTRA: Record<string, Partial<CountryInfo>> = {
+  fr: { language: "フランス語", langCode: "fr", hello: "ボンジュール（Bonjour）", thanks: "メルシー（Merci）", payment: "カードがほぼどこでも使える。少額の現金も用意すると安心", bestSeason: "春（4〜6月）と秋（9〜10月）が快適" },
+  it: { language: "イタリア語", langCode: "it", hello: "ボンジョルノ（Buongiorno）", thanks: "グラッツィエ（Grazie）", payment: "カード可の店が多いが、小さな店は現金も", bestSeason: "春（4〜6月）と秋（9〜10月）" },
+  es: { language: "スペイン語", langCode: "es", hello: "オラ（Hola）", thanks: "グラシアス（Gracias）", payment: "カード広く使える。夜は遅めの生活リズム", bestSeason: "春（4〜6月）と秋（9〜10月）" },
+  de: { language: "ドイツ語", langCode: "de", hello: "グーテンターク（Guten Tag）", thanks: "ダンケ（Danke）", payment: "現金文化が根強い。小額現金は必須級", bestSeason: "初夏〜秋（5〜10月）" },
+  gb: { language: "英語", langCode: "en", hello: "ハロー（Hello）", thanks: "サンキュー（Thank you）", payment: "ほぼ完全キャッシュレス。タッチ決済が主流", bestSeason: "初夏〜初秋（5〜9月）" },
+  us: { language: "英語", langCode: "en", hello: "ハロー（Hello）", thanks: "サンキュー（Thank you）", payment: "カード社会。チップ文化があるので少額現金も", bestSeason: "都市により異なる（春・秋が快適）" },
+  kr: { language: "韓国語", langCode: "ko", hello: "アンニョンハセヨ（안녕하세요）", thanks: "カムサハムニダ（감사합니다）", payment: "ほぼ完全キャッシュレス。交通カードが便利", bestSeason: "春（4〜6月）と秋（9〜11月）" },
+  tw: { language: "中国語（繁体字）", langCode: "zh-TW", hello: "ニーハオ（你好）", thanks: "シエシエ（謝謝）", payment: "現金がまだ強い。悠遊カードが便利", bestSeason: "秋〜初冬（10〜12月）。夏は蒸し暑い" },
+  th: { language: "タイ語", langCode: "th", hello: "サワディー（สวัสดี）", thanks: "コープクン（ขอบคุณ）", payment: "現金中心。屋台・市場は小額紙幣を", bestSeason: "乾季の11〜2月が過ごしやすい" },
+  vn: { language: "ベトナム語", langCode: "vi", hello: "シンチャオ（Xin chào）", thanks: "カムオン（Cảm ơn）", payment: "現金中心。高額紙幣はお釣りに注意", bestSeason: "地域差大。北部は秋、南部は乾季（12〜4月）" },
+  sg: { language: "英語・中国語など", langCode: "en", hello: "ハロー（Hello）", thanks: "サンキュー（Thank you）", payment: "キャッシュレスが進む。カード・QR決済が主流", bestSeason: "通年高温多湿。比較的乾いた2〜4月" },
+  au: { language: "英語", langCode: "en", hello: "ハロー（Hello）", thanks: "サンキュー（Thank you）", payment: "ほぼキャッシュレス。タッチ決済が主流", bestSeason: "日本と季節が逆。春（9〜11月）と秋（3〜5月）" },
+  ch: { language: "独・仏・伊語など", langCode: "de", hello: "グリュエッツィ（Grüezi）", thanks: "ダンケ（Danke）", payment: "カード広く使えるが現金も。物価が高い", bestSeason: "初夏〜秋（6〜9月）。登山は夏" },
+  nl: { language: "オランダ語（英語も通じる）", langCode: "nl", hello: "ハロー（Hallo）", thanks: "ダンクユー（Dank u）", payment: "キャッシュレスが進む。カード必須", bestSeason: "春（4〜5月）のチューリップ期、初夏〜初秋" },
+  tr: { language: "トルコ語", langCode: "tr", hello: "メルハバ（Merhaba）", thanks: "テシェキュレル（Teşekkürler）", payment: "現金中心。バザールは値切りが基本", bestSeason: "春（4〜5月）と秋（9〜11月）" },
+  hk: { language: "広東語・英語", langCode: "zh-TW", hello: "ネイホウ（你好）", thanks: "ムゴイ（唔該）", payment: "オクトパスカードが万能。現金も用意", bestSeason: "秋〜初冬（10〜12月）" },
 };
 
 export const COUNTRY_INFO: Record<string, CountryInfo> = {
@@ -327,5 +354,8 @@ export const COUNTRY_INFO: Record<string, CountryInfo> = {
 
 export function countryInfo(code: string | null | undefined): CountryInfo | null {
   if (!code) return null;
-  return COUNTRY_INFO[code.toLowerCase()] ?? null;
+  const c = code.toLowerCase();
+  const base = COUNTRY_INFO[c];
+  if (!base) return null;
+  return { ...base, ...(COUNTRY_EXTRA[c] ?? {}) };
 }
