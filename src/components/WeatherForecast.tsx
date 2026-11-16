@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { CloudSun } from "lucide-react";
-import { ymd, WEEKDAY_JA } from "@/lib/date";
+import { WEEKDAY_JA } from "@/lib/date";
 
 type DayWeather = { date: string; code: number; tmax: number; tmin: number; pop: number };
-type Status = "loading" | "ok" | "out" | "none";
+type Status = "loading" | "ok" | "error" | "none";
 
 // WMO weather code → 絵文字＋ラベル
 function weatherInfo(code: number): { emoji: string; label: string } {
@@ -25,13 +25,11 @@ function weatherInfo(code: number): { emoji: string; label: string } {
 export default function WeatherForecast({
   lat,
   lng,
-  start,
-  end,
+  title = "現地の天気（今日から1週間）",
 }: {
   lat: number | null;
   lng: number | null;
-  start: string | null;
-  end: string | null;
+  title?: string;
 }) {
   const [days, setDays] = useState<DayWeather[]>([]);
   const [status, setStatus] = useState<Status>("loading");
@@ -42,30 +40,12 @@ export default function WeatherForecast({
       setStatus("none");
       return;
     }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const maxDate = new Date(today);
-    maxDate.setDate(maxDate.getDate() + 15); // Open-Meteo の無料予報は約16日先まで
 
-    if (!start) {
-      setStatus("none");
-      return;
-    }
-    const s = new Date(start);
-    s.setHours(0, 0, 0, 0);
-    const e = end ? new Date(end) : s;
-    e.setHours(0, 0, 0, 0);
-    if (e.getTime() < today.getTime() || s.getTime() > maxDate.getTime()) {
-      setStatus("out");
-      return;
-    }
-    const rs = s.getTime() < today.getTime() ? today : s;
-    const re = e.getTime() > maxDate.getTime() ? maxDate : e;
-
+    // 今日から1週間（7日間）の予報
     const url =
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
       `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
-      `&timezone=auto&start_date=${ymd(rs)}&end_date=${ymd(re)}`;
+      `&timezone=auto&forecast_days=7`;
 
     setStatus("loading");
     fetch(url)
@@ -74,7 +54,7 @@ export default function WeatherForecast({
         if (!active) return;
         const t = d.daily;
         if (!t?.time) {
-          setStatus("out");
+          setStatus("error");
           return;
         }
         const arr: DayWeather[] = (t.time as string[]).map((date, i) => ({
@@ -88,27 +68,25 @@ export default function WeatherForecast({
         setStatus("ok");
       })
       .catch(() => {
-        if (active) setStatus("out");
+        if (active) setStatus("error");
       });
     return () => {
       active = false;
     };
-  }, [lat, lng, start, end]);
+  }, [lat, lng]);
 
-  if (status === "none") return null; // 日程 or 場所が無いときは非表示
+  if (status === "none") return null; // 場所が無いときは非表示
 
   return (
     <div className="rounded-md border border-line bg-white p-4">
       <h2 className="mb-3 flex items-center gap-1.5 text-sm font-bold text-gray-700">
         <CloudSun className="size-4 text-brand" />
-        現地の天気
+        {title}
       </h2>
       {status === "loading" ? (
         <p className="py-2 text-center text-xs text-gray-400">天気を読み込み中…</p>
-      ) : status === "out" ? (
-        <p className="py-2 text-xs text-gray-400">
-          天気予報は出発の約2週間前から表示されます。
-        </p>
+      ) : status === "error" ? (
+        <p className="py-2 text-xs text-gray-400">天気を取得できませんでした。</p>
       ) : (
         <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {days.map((d) => {

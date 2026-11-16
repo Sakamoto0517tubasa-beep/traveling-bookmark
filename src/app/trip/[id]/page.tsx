@@ -449,12 +449,7 @@ function PlanTab({ trip, spots }: { trip: Trip; spots: Spot[] }) {
 
   return (
     <section className="space-y-5 p-4">
-      <WeatherForecast
-        lat={firstSpot?.lat ?? null}
-        lng={firstSpot?.lng ?? null}
-        start={trip.start_date}
-        end={trip.end_date}
-      />
+      <WeatherForecast lat={firstSpot?.lat ?? null} lng={firstSpot?.lng ?? null} />
       {days.map((d) => {
         const list = items.filter((it) => it.day === d).sort((a, b) => a.order_index - b.order_index);
         const dateStr = dateLabel(d);

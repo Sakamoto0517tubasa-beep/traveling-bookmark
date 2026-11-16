@@ -19,6 +19,7 @@ import type { Spot, Trip, PackingItem, SpotCategory } from "@/lib/types";
 import { CATEGORY_META } from "@/lib/types";
 import { formatYen, toYen } from "@/lib/currency";
 import NearbyPlaces from "@/components/NearbyPlaces";
+import WeatherForecast from "@/components/WeatherForecast";
 
 const CATS: SpotCategory[] = ["sightseeing", "food", "cafe", "lodging", "shopping", "other"];
 
@@ -174,6 +175,11 @@ function SpotView() {
 
         {/* このスポットについて（解説） */}
         <PlaceAbout placeId={spot.place_id} name={spot.name} />
+
+        {/* この場所の週間天気（今日から1週間） */}
+        {spot.lat != null && spot.lng != null && (
+          <WeatherForecast lat={spot.lat} lng={spot.lng} title="ここの天気（今日から1週間）" />
+        )}
 
         {/* 基本情報 */}
         <section className="rounded-md border border-line bg-white p-4">
