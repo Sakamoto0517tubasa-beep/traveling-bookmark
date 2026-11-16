@@ -47,10 +47,10 @@ import {
 import type { Trip, Spot, Expense, DayPlan, ScheduleItem, LinkItem, TripPackingItem, SouvenirItem } from "@/lib/types";
 import { CATEGORY_META } from "@/lib/types";
 import { toYen, formatYen, formatLocal } from "@/lib/currency";
-import { tripCountdown } from "@/lib/date";
 import TripMap from "@/components/TripMap";
 import AddSpotModal from "@/components/AddSpotModal";
 import WeatherForecast from "@/components/WeatherForecast";
+import CountdownTimer from "@/components/CountdownTimer";
 
 type Tab = "map" | "plan" | "money" | "links" | "packing" | "souvenir";
 
@@ -183,26 +183,15 @@ function TripView() {
           </button>
         </div>
 
-        {/* 合計金額バー＋カウントダウン */}
+        {/* 合計金額バー */}
         <div className="mt-2 flex items-center justify-between gap-2 rounded-md bg-white/10 px-3 py-2">
           <span className="text-xs text-white/70">旅行の合計（入場料＋ホテル）</span>
-          <div className="flex items-center gap-2">
-            {(() => {
-              const cd = tripCountdown(trip.start_date, trip.end_date);
-              return cd ? (
-                <span
-                  className={`tnum rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                    cd.soon ? "bg-brand text-white" : "bg-white/20 text-white"
-                  }`}
-                >
-                  {cd.text}
-                </span>
-              ) : null;
-            })()}
-            <span className="tnum text-base font-bold">{formatYen(totalYen)}</span>
-          </div>
+          <span className="tnum text-base font-bold">{formatYen(totalYen)}</span>
         </div>
       </header>
+
+      {/* 出発カウントダウン（秒まで） */}
+      <CountdownTimer start={trip.start_date} end={trip.end_date} />
 
       {/* タブ内容 */}
       {tab === "map" && (
