@@ -12,6 +12,7 @@ create table if not exists om_trips (
   cover_photo   text,                                 -- 表紙写真URL
   currency_code text not null default 'JPY',          -- 現地通貨 例: EUR, USD, KRW
   currency_rate numeric not null default 1,           -- 現地通貨1 = ○円
+  budget        numeric,                               -- 旅行の目標予算（円）
   created_at    timestamptz not null default now()
 );
 

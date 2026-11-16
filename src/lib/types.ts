@@ -17,6 +17,7 @@ export type Trip = {
   cover_photo: string | null;
   currency_code: string;
   currency_rate: number;
+  budget: number | null; // 旅行の目標予算（円）
   created_at: string;
 };
 

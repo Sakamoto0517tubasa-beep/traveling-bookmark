@@ -18,10 +18,12 @@ import {
   Check,
   ExternalLink,
   Navigation,
+  Globe,
 } from "lucide-react";
 import { hasSupabase } from "@/lib/supabase";
 import {
   getTrip,
+  updateTrip,
   listSpots,
   deleteSpot,
   listExpenses,
@@ -48,12 +50,14 @@ import {
 import type { Trip, Spot, Expense, DayPlan, ScheduleItem, LinkItem, TripPackingItem, SouvenirItem } from "@/lib/types";
 import { CATEGORY_META } from "@/lib/types";
 import { toYen, formatYen, formatLocal } from "@/lib/currency";
+import { countryCodeFromAddress, flagUrl } from "@/lib/countries";
+import { countryInfo } from "@/lib/countryInfo";
 import TripMap from "@/components/TripMap";
 import AddSpotModal from "@/components/AddSpotModal";
 import WeatherForecast from "@/components/WeatherForecast";
 import CountdownTimer from "@/components/CountdownTimer";
 
-type Tab = "map" | "plan" | "money" | "links" | "packing" | "souvenir";
+type Tab = "map" | "plan" | "money" | "links" | "packing" | "souvenir" | "info";
 
 // スポットを順番に回る Google マップの経路URL（現在地は含めず、登録順）
 function buildRouteUrl(spots: Spot[]): string | null {
@@ -271,11 +275,16 @@ function TripView() {
             await deleteExpense(eid);
             await load();
           }}
+          onSetBudget={async (yen) => {
+            await updateTrip(trip.id, { budget: yen });
+            await load();
+          }}
         />
       )}
       {tab === "links" && <LinksTab trip={trip} />}
       {tab === "packing" && <PackingTab trip={trip} />}
       {tab === "souvenir" && <SouvenirTab trip={trip} />}
+      {tab === "info" && <CountryInfoTab spots={spots} />}
 
       {/* 下タブ */}
       <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto flex max-w-2xl border-t border-line bg-white">
@@ -286,11 +295,12 @@ function TripView() {
           { key: "links", label: "予約", icon: Ticket },
           { key: "packing", label: "持ち物", icon: Luggage },
           { key: "souvenir", label: "お土産", icon: Gift },
+          { key: "info", label: "現地", icon: Globe },
         ] as const).map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-bold ${
+            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-bold ${
               tab === t.key ? "text-brand" : "text-gray-400"
             }`}
           >
@@ -593,12 +603,14 @@ function MoneyTab({
   expenses,
   onAdd,
   onDelete,
+  onSetBudget,
 }: {
   trip: Trip;
   spots: Spot[];
   expenses: Expense[];
   onAdd: (inp: { trip_id: string; spot_id: string | null; payer: string; amount: number; label: string | null }) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onSetBudget: (yen: number | null) => Promise<void>;
 }) {
   const members = trip.members.length > 0 ? trip.members : ["自分", "相手"];
   const [payer, setPayer] = useState(members[0]);
@@ -657,8 +669,15 @@ function MoneyTab({
 
   const field = "rounded-md border border-line bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-brand";
 
+  // 予算（円）に対する見込み合計 = スポットの予定費用＋おかねの支出（すべて円換算）
+  const plannedLocal = spots.reduce((s, sp) => s + (sp.admission_fee || 0) + (sp.hotel_fee || 0), 0);
+  const usedYen = toYen(plannedLocal, trip.currency_rate) + toYen(total, trip.currency_rate);
+
   return (
     <section className="space-y-5 p-4">
+      {/* 予算管理 */}
+      <BudgetCard budget={trip.budget} usedYen={usedYen} onSetBudget={onSetBudget} />
+
       {/* サマリー */}
       <div className="rounded-md border border-line bg-white p-4">
         <p className="text-xs font-bold text-gray-500">みんなで使った合計</p>
@@ -759,6 +778,105 @@ function MoneyTab({
         {spots.length > 0 ? "" : "スポットを追加すると、入場料なども合計に反映できます"}
       </p>
     </section>
+  );
+}
+
+// 予算カード（目標予算に対する見込み合計を可視化）
+function BudgetCard({
+  budget,
+  usedYen,
+  onSetBudget,
+}: {
+  budget: number | null;
+  usedYen: number;
+  onSetBudget: (yen: number | null) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [input, setInput] = useState(budget != null ? String(budget) : "");
+
+  async function save() {
+    const n = Number(input);
+    await onSetBudget(n > 0 ? Math.round(n) : null);
+    setEditing(false);
+  }
+
+  if (budget == null && !editing) {
+    return (
+      <div className="flex items-center justify-between rounded-md border border-dashed border-line bg-white px-4 py-3">
+        <p className="text-sm font-bold text-gray-600">予算を決める 🎯</p>
+        <button
+          onClick={() => {
+            setInput("");
+            setEditing(true);
+          }}
+          className="rounded-md bg-navy px-3 py-1.5 text-xs font-bold text-white hover:opacity-90"
+        >
+          予算を設定
+        </button>
+      </div>
+    );
+  }
+
+  if (editing) {
+    return (
+      <div className="rounded-md border border-line bg-white p-4">
+        <p className="mb-2 text-sm font-bold text-gray-700">目標予算（円）</p>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && save()}
+            placeholder="例: 300000"
+            className="tnum w-full rounded-md border border-line bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-brand"
+          />
+          <button onClick={save} className="shrink-0 rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-dark">
+            保存
+          </button>
+        </div>
+        {budget != null && (
+          <button
+            onClick={async () => {
+              await onSetBudget(null);
+              setEditing(false);
+            }}
+            className="mt-2 text-[11px] text-gray-400 hover:text-rose-500"
+          >
+            予算を削除する
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const b = budget ?? 0;
+  const pct = b > 0 ? Math.min((usedYen / b) * 100, 100) : 0;
+  const over = usedYen > b;
+  const remaining = b - usedYen;
+  const barColor = over ? "bg-rose-500" : pct >= 80 ? "bg-amber-500" : "bg-emerald-500";
+
+  return (
+    <div className="rounded-md border border-line bg-white p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-bold text-gray-500">予算</p>
+        <button onClick={() => { setInput(String(b)); setEditing(true); }} className="text-[11px] font-bold text-brand hover:underline">
+          変更
+        </button>
+      </div>
+      <div className="flex items-end justify-between">
+        <p className="tnum text-2xl font-bold text-navy">{formatYen(usedYen)}</p>
+        <p className="tnum text-sm text-gray-400">/ {formatYen(b)}</p>
+      </div>
+      <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+        <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
+      </div>
+      <p className={`mt-2 text-xs font-bold ${over ? "text-rose-500" : "text-gray-500"}`}>
+        {over ? `予算オーバー ${formatYen(usedYen - b)}` : `残り ${formatYen(remaining)}`}
+      </p>
+      <p className="mt-1 text-[11px] text-gray-400">
+        ※ スポットの予定費用（入場料・ホテル）＋おかねの支出の合計です
+      </p>
+    </div>
   );
 }
 
@@ -1058,6 +1176,94 @@ function SouvenirTab({ trip }: { trip: Trip }) {
           </ul>
         )}
       </div>
+    </section>
+  );
+}
+
+// ---- 現地（国の基本情報）----
+function CountryInfoTab({ spots }: { spots: Spot[] }) {
+  // スポットの住所から国コードを推定（最初に見つかったもの）
+  let code: string | null = null;
+  for (const s of spots) {
+    code = countryCodeFromAddress(s.address);
+    if (code) break;
+  }
+  const info = code ? countryInfo(code) : null;
+
+  if (!code) {
+    return (
+      <section className="p-4">
+        <div className="rounded-md border border-dashed border-line bg-white py-14 text-center">
+          <Globe className="mx-auto mb-2 size-6 text-gray-300" />
+          <p className="text-sm font-bold text-gray-600">まだ行き先がわかりません</p>
+          <p className="mt-1 text-xs text-gray-400">
+            マップでスポットを登録すると、その国の基本情報が出ます
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  const rows: { emoji: string; label: string; value: string }[] = info
+    ? [
+        { emoji: "💶", label: "通貨", value: info.currency },
+        { emoji: "🔌", label: "電圧・プラグ", value: info.plug },
+        { emoji: "💁", label: "チップ", value: info.tipping },
+        { emoji: "🚨", label: "緊急番号", value: info.emergency },
+        { emoji: "🚰", label: "水道水", value: info.water },
+        { emoji: "🕐", label: "日本との時差", value: info.timeDiff },
+        { emoji: "🛂", label: "ビザ（観光）", value: info.visa },
+        { emoji: "💡", label: "ひとことメモ", value: info.tips },
+      ]
+    : [];
+
+  return (
+    <section className="space-y-4 p-4">
+      {/* 国ヘッダー */}
+      <div className="flex items-center gap-3 rounded-md border border-line bg-white p-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={flagUrl(code)}
+          alt=""
+          className="h-9 w-14 shrink-0 rounded border border-line object-cover"
+        />
+        <div>
+          <p className="text-[11px] font-bold text-gray-400">旅行先の基本情報</p>
+          <h2 className="text-lg font-bold text-gray-900">
+            {info ? info.name : code.toUpperCase()}
+          </h2>
+        </div>
+      </div>
+
+      {info ? (
+        <>
+          <div className="overflow-hidden rounded-md border border-line bg-white">
+            {rows.map((r, i) => (
+              <div
+                key={r.label}
+                className={`flex gap-3 px-4 py-3 ${i > 0 ? "border-t border-line" : ""}`}
+              >
+                <span className="shrink-0 text-lg leading-6">{r.emoji}</span>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold text-gray-400">{r.label}</p>
+                  <p className="text-sm leading-relaxed text-gray-800">{r.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="px-1 text-[11px] leading-relaxed text-gray-400">
+            ※ 情報は目安です。ビザ・治安・入国ルールは変わることがあるので、渡航前に外務省
+            「海外安全ホームページ」などで最新情報を確認してください。
+          </p>
+        </>
+      ) : (
+        <div className="rounded-md border border-dashed border-line bg-white py-10 text-center">
+          <p className="text-sm font-bold text-gray-600">この国の詳細情報は準備中です</p>
+          <p className="mt-1 text-xs text-gray-400">
+            通貨・チップ・電源などは渡航前に確認してください
+          </p>
+        </div>
+      )}
     </section>
   );
 }
