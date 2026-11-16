@@ -38,7 +38,8 @@ export type Spot = {
   hours_memo: string | null;
   day: number | null;
   order_index: number;
-  likes: number; // 行きたい度（ハートのタップ回数）
+  likes: number; // （旧）行きたい度の合計。現在は likes_by を使用
+  likes_by: Record<string, number>; // メンバー別の行きたい度（名前→タップ回数）
   visited: boolean;
   memory_note: string | null;
   memory_photo: string | null;

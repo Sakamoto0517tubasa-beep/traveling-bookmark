@@ -56,6 +56,15 @@ import CountdownTimer from "@/components/CountdownTimer";
 
 type Tab = "map" | "plan" | "money" | "links" | "packing" | "info";
 
+// メンバーのハート色（登録順: 1人目=青, 2人目=赤, …）
+const MEMBER_COLORS = ["#2563eb", "#e11d48", "#16a34a", "#d97706"];
+
+// メンバー別の行きたい度の合計
+function sumLikes(by: Record<string, number> | undefined): number {
+  if (!by) return 0;
+  return Object.values(by).reduce((a, b) => a + (b || 0), 0);
+}
+
 // スポットを順番に回る Google マップの経路URL（現在地は含めず、登録順）
 function buildRouteUrl(spots: Spot[]): string | null {
   const pts = spots.filter((s) => s.lat != null && s.lng != null).slice(0, 10);
@@ -93,17 +102,18 @@ function TripView() {
   const [showAdd, setShowAdd] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // 行きたい度（ハート）：連打に耐えるよう ref で集計し、DB保存はデバウンス
-  const likeRef = useRef<Record<string, number>>({});
+  // 行きたい度（メンバー別ハート）：連打に耐えるよう ref で集計し、DB保存はデバウンス
+  const likeRef = useRef<Record<string, Record<string, number>>>({});
   const likeTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  function likeSpot(id: string) {
-    const next = (likeRef.current[id] ?? 0) + 1;
-    likeRef.current[id] = next;
-    setSpots((prev) => prev.map((x) => (x.id === id ? { ...x, likes: next } : x)));
+  function likeSpot(id: string, member: string) {
+    const cur = likeRef.current[id] ?? {};
+    const nextMap = { ...cur, [member]: (cur[member] ?? 0) + 1 };
+    likeRef.current[id] = nextMap;
+    setSpots((prev) => prev.map((x) => (x.id === id ? { ...x, likes_by: nextMap } : x)));
     clearTimeout(likeTimers.current[id]);
     likeTimers.current[id] = setTimeout(() => {
-      updateSpot(id, { likes: next }).catch(() => {});
+      updateSpot(id, { likes_by: nextMap }).catch(() => {});
     }, 500);
   }
 
@@ -115,7 +125,7 @@ function TripView() {
     const [t, s, e] = await Promise.all([getTrip(id), listSpots(id), listExpenses(id)]);
     setTrip(t);
     setSpots(s);
-    likeRef.current = Object.fromEntries(s.map((sp) => [sp.id, sp.likes ?? 0]));
+    likeRef.current = Object.fromEntries(s.map((sp) => [sp.id, { ...(sp.likes_by ?? {}) }]));
     setExpenses(e);
     setLoading(false);
   }, [id]);
@@ -168,6 +178,8 @@ function TripView() {
       </main>
     );
   }
+
+  const members = trip.members.length > 0 ? trip.members : ["つばにゃ", "りの"];
 
   return (
     <main className="mx-auto min-h-dvh max-w-2xl bg-background pb-24">
@@ -248,9 +260,18 @@ function TripView() {
               </button>
             </div>
             {spots.length > 0 && (
-              <p className="mb-3 text-[11px] text-gray-400">
-                ❤️ を押すほど上に！ふたりで「行きたい！」を連打してランキングにしよう
-              </p>
+              <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-400">
+                <span>ハートを連打するほど上に！</span>
+                {members.map((m, i) => (
+                  <span key={m} className="flex items-center gap-1">
+                    <Heart
+                      className="size-3.5"
+                      style={{ color: MEMBER_COLORS[i % MEMBER_COLORS.length], fill: MEMBER_COLORS[i % MEMBER_COLORS.length] }}
+                    />
+                    <span className="font-bold text-gray-500">{m}</span>
+                  </span>
+                ))}
+              </div>
             )}
             {spots.length === 0 ? (
               <div className="rounded-md border border-dashed border-line bg-white py-14 text-center">
@@ -262,7 +283,8 @@ function TripView() {
                 {[...spots]
                   .sort(
                     (a, b) =>
-                      (b.likes ?? 0) - (a.likes ?? 0) || a.order_index - b.order_index,
+                      sumLikes(b.likes_by) - sumLikes(a.likes_by) ||
+                      a.order_index - b.order_index,
                   )
                   .map((s, i) => (
                     <SpotCard
@@ -270,7 +292,8 @@ function TripView() {
                       spot={s}
                       trip={trip}
                       rank={i + 1}
-                      onLike={() => likeSpot(s.id)}
+                      members={members}
+                      onLike={(m) => likeSpot(s.id, m)}
                       onClick={() => router.push(`/trip/${id}/spot/${s.id}`)}
                       onDelete={async () => {
                         if (!confirm(`「${s.name}」を削除しますか？`)) return;
@@ -342,6 +365,7 @@ function SpotCard({
   spot,
   trip,
   rank,
+  members,
   onClick,
   onDelete,
   onLike,
@@ -349,14 +373,16 @@ function SpotCard({
   spot: Spot;
   trip: Trip;
   rank: number;
+  members: string[];
   onClick: () => void;
   onDelete: () => void;
-  onLike: () => void;
+  onLike: (member: string) => void;
 }) {
   const meta = CATEGORY_META[spot.category];
   const cost = (spot.admission_fee || 0) + (spot.hotel_fee || 0);
-  const likes = spot.likes ?? 0;
-  const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
+  const likesBy = spot.likes_by ?? {};
+  const total = sumLikes(likesBy);
+  const medal = total > 0 ? (rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null) : null;
   return (
     <li>
       <div
@@ -411,25 +437,42 @@ function SpotCard({
             </p>
           )}
         </div>
-        {/* 行きたい度（ハート・連打OK） */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onLike();
-          }}
-          className="flex shrink-0 flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition-transform hover:bg-rose-50 active:scale-90"
-          title="「行きたい！」を押す"
-          aria-label="行きたい！"
-        >
-          <Heart className={`size-6 ${likes > 0 ? "fill-brand text-brand" : "text-gray-300"}`} />
-          <span className="tnum text-[11px] font-bold text-gray-500">{likes}</span>
-        </button>
+        {/* 行きたい度（メンバー別ハート・連打OK） */}
+        <div className="flex shrink-0 flex-col gap-1">
+          {members.map((m, i) => {
+            const color = MEMBER_COLORS[i % MEMBER_COLORS.length];
+            const c = likesBy[m] ?? 0;
+            return (
+              <button
+                key={m}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLike(m);
+                }}
+                className="flex items-center gap-1 rounded-full px-1.5 py-0.5 transition-transform hover:bg-gray-100 active:scale-90"
+                title={`${m}の「行きたい！」`}
+                aria-label={`${m}の行きたい`}
+              >
+                <Heart
+                  className="size-5"
+                  style={c > 0 ? { color, fill: color } : { color: "#d1d5db" }}
+                />
+                <span
+                  className="tnum w-3 text-[11px] font-bold"
+                  style={{ color: c > 0 ? color : "#9ca3af" }}
+                >
+                  {c}
+                </span>
+              </button>
+            );
+          })}
+        </div>
         <button
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
-          className="shrink-0 rounded-full p-2 text-gray-300 hover:bg-red-50 hover:text-brand"
+          className="shrink-0 self-start rounded-full p-2 text-gray-300 hover:bg-red-50 hover:text-brand"
           title="このスポットを削除"
           aria-label="このスポットを削除"
         >
