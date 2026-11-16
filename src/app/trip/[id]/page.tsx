@@ -10,7 +10,6 @@ import {
   Wallet,
   Ticket,
   Luggage,
-  Gift,
   Share2,
   Users,
   Calendar,
@@ -42,12 +41,8 @@ import {
   addTripPacking,
   toggleTripPacking,
   deleteTripPacking,
-  listSouvenirs,
-  addSouvenir,
-  toggleSouvenir,
-  deleteSouvenir,
 } from "@/lib/db";
-import type { Trip, Spot, Expense, DayPlan, ScheduleItem, LinkItem, TripPackingItem, SouvenirItem } from "@/lib/types";
+import type { Trip, Spot, Expense, DayPlan, ScheduleItem, LinkItem, TripPackingItem } from "@/lib/types";
 import { CATEGORY_META } from "@/lib/types";
 import { toYen, formatYen, formatLocal } from "@/lib/currency";
 import { countryCodeFromAddress, flagUrl } from "@/lib/countries";
@@ -57,7 +52,7 @@ import AddSpotModal from "@/components/AddSpotModal";
 import WeatherForecast from "@/components/WeatherForecast";
 import CountdownTimer from "@/components/CountdownTimer";
 
-type Tab = "map" | "plan" | "money" | "links" | "packing" | "souvenir" | "info";
+type Tab = "map" | "plan" | "money" | "links" | "packing" | "info";
 
 // スポットを順番に回る Google マップの経路URL（現在地は含めず、登録順）
 function buildRouteUrl(spots: Spot[]): string | null {
@@ -283,7 +278,6 @@ function TripView() {
       )}
       {tab === "links" && <LinksTab trip={trip} />}
       {tab === "packing" && <PackingTab trip={trip} />}
-      {tab === "souvenir" && <SouvenirTab trip={trip} />}
       {tab === "info" && <CountryInfoTab spots={spots} />}
 
       {/* 下タブ */}
@@ -294,13 +288,12 @@ function TripView() {
           { key: "money", label: "おかね", icon: Wallet },
           { key: "links", label: "予約", icon: Ticket },
           { key: "packing", label: "持ち物", icon: Luggage },
-          { key: "souvenir", label: "お土産", icon: Gift },
           { key: "info", label: "現地", icon: Globe },
         ] as const).map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-bold ${
+            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-bold ${
               tab === t.key ? "text-brand" : "text-gray-400"
             }`}
           >
@@ -1066,115 +1059,6 @@ function PackingTab({ trip }: { trip: Trip }) {
             <Plus className="size-5" />
           </button>
         </div>
-      </div>
-    </section>
-  );
-}
-
-// ---- お土産リスト（何を・誰に・買ったか）----
-function SouvenirTab({ trip }: { trip: Trip }) {
-  const [items, setItems] = useState<SouvenirItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [label, setLabel] = useState("");
-  const [recipient, setRecipient] = useState("");
-
-  const reload = useCallback(async () => {
-    setItems(await listSouvenirs(trip.id));
-    setLoading(false);
-  }, [trip.id]);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
-
-  async function add() {
-    if (!label.trim()) {
-      alert("買うものを入れてください（例: チョコレート）");
-      return;
-    }
-    const created = await addSouvenir({
-      trip_id: trip.id,
-      label: label.trim(),
-      recipient: recipient.trim() || null,
-      order_index: items.length,
-    });
-    setItems((prev) => [...prev, created]);
-    setLabel("");
-    setRecipient("");
-  }
-
-  async function toggle(it: SouvenirItem) {
-    await toggleSouvenir(it.id, !it.checked);
-    setItems((prev) => prev.map((x) => (x.id === it.id ? { ...x, checked: !x.checked } : x)));
-  }
-
-  async function remove(it: SouvenirItem) {
-    await deleteSouvenir(it.id);
-    setItems((prev) => prev.filter((x) => x.id !== it.id));
-  }
-
-  const field = "w-full rounded-md border border-line bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-brand";
-  const bought = items.filter((i) => i.checked).length;
-
-  if (loading) return <p className="py-16 text-center text-sm text-gray-400">読み込み中…</p>;
-
-  return (
-    <section className="space-y-4 p-4">
-      <div className="rounded-md border border-line bg-white p-4">
-        <h2 className="mb-3 text-sm font-bold text-gray-700">お土産を追加</h2>
-        <div className="grid gap-2">
-          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="何を買う？（例: チョコレート）" className={field} />
-          <input
-            value={recipient}
-            onChange={(e) => setRecipient(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && add()}
-            placeholder="誰に？（例: お母さん・会社）任意"
-            className={field}
-          />
-          <button onClick={add} className="rounded-md bg-navy py-2.5 text-sm font-bold text-white hover:opacity-90">
-            追加する
-          </button>
-        </div>
-      </div>
-
-      <div className="rounded-md border border-line bg-white p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-gray-700">お土産リスト</h2>
-          {items.length > 0 && (
-            <span className="tnum text-xs font-bold text-gray-400">
-              買った {bought} / {items.length}
-            </span>
-          )}
-        </div>
-        {items.length === 0 ? (
-          <p className="py-6 text-center text-xs text-gray-400">
-            「何を・誰に」を記録して買い忘れを防げます
-          </p>
-        ) : (
-          <ul className="space-y-1.5">
-            {items.map((it) => (
-              <li key={it.id} className="flex items-center gap-2">
-                <button
-                  onClick={() => toggle(it)}
-                  className={`flex size-5 shrink-0 items-center justify-center rounded border ${
-                    it.checked ? "border-brand bg-brand text-white" : "border-gray-300 bg-white"
-                  }`}
-                >
-                  {it.checked && <Check className="size-3.5" />}
-                </button>
-                <div className={`min-w-0 flex-1 ${it.checked ? "opacity-50" : ""}`}>
-                  <p className={`truncate text-sm ${it.checked ? "text-gray-400 line-through" : "font-bold text-gray-800"}`}>
-                    {it.label}
-                  </p>
-                  {it.recipient && <p className="truncate text-[11px] text-gray-400">→ {it.recipient}</p>}
-                </div>
-                <button onClick={() => remove(it)} className="shrink-0 text-gray-300 hover:text-rose-500">
-                  <Trash2 className="size-4" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
     </section>
   );
