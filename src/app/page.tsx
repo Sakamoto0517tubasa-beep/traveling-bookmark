@@ -6,6 +6,7 @@ import { MapPin, Plus, Users, Calendar, Trash2 } from "lucide-react";
 import { hasSupabase } from "@/lib/supabase";
 import { listTrips, deleteTrip, getTripCountryCodes } from "@/lib/db";
 import { flagUrl } from "@/lib/countries";
+import { tripCountdown } from "@/lib/date";
 import type { Trip } from "@/lib/types";
 import CreateTripModal from "@/components/CreateTripModal";
 
@@ -144,7 +145,21 @@ export default function Home() {
                     )}
                   </div>
                   <div className="p-3">
-                    <p className="font-bold text-gray-900">{t.name}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-bold text-gray-900">{t.name}</p>
+                      {(() => {
+                        const cd = tripCountdown(t.start_date, t.end_date);
+                        return cd ? (
+                          <span
+                            className={`tnum shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                              cd.soon ? "bg-brand text-white" : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {cd.text}
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-gray-500">
                       <span className="flex items-center gap-1">
                         <Calendar className="size-3.5" />
