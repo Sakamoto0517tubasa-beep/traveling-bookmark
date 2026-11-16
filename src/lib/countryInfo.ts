@@ -19,6 +19,105 @@ export type CountryInfo = {
   thanks?: string; // 現地語「ありがとう」
   payment?: string; // 支払い事情（現金・カード）
   bestSeason?: string; // ベストシーズン
+  phrases?: { ja: string; local: string }[]; // 旅行で使える簡単フレーズ
+};
+
+// 英語圏共通のフレーズ
+const EN_PHRASES: { ja: string; local: string }[] = [
+  { ja: "こんにちは", local: "Hello（ハロー）" },
+  { ja: "ありがとう", local: "Thank you（サンキュー）" },
+  { ja: "すみません", local: "Excuse me（エクスキューズ ミー）" },
+  { ja: "お願いします", local: "Please（プリーズ）" },
+  { ja: "はい・いいえ", local: "Yes・No（イエス・ノー）" },
+  { ja: "いくらですか？", local: "How much is it?（ハウ マッチ イズ イット）" },
+  { ja: "〜はどこですか？", local: "Where is ...?（ウェア イズ）" },
+  { ja: "さようなら", local: "Goodbye（グッバイ）" },
+];
+
+// 旅行で使える簡単フレーズ
+const PHRASES: Record<string, { ja: string; local: string }[]> = {
+  fr: [
+    { ja: "こんにちは", local: "Bonjour（ボンジュール）" },
+    { ja: "ありがとう", local: "Merci（メルシー）" },
+    { ja: "すみません", local: "Pardon（パルドン）" },
+    { ja: "お願いします", local: "S'il vous plaît（シルヴプレ）" },
+    { ja: "はい・いいえ", local: "Oui・Non（ウィ・ノン）" },
+    { ja: "いくらですか？", local: "C'est combien ?（セ コンビヤン）" },
+    { ja: "英語を話せますか？", local: "Vous parlez anglais ?（ヴ パルレ アングレ）" },
+    { ja: "さようなら", local: "Au revoir（オ ルヴォワール）" },
+  ],
+  it: [
+    { ja: "こんにちは", local: "Buongiorno（ボンジョルノ）" },
+    { ja: "ありがとう", local: "Grazie（グラッツィエ）" },
+    { ja: "すみません", local: "Scusi（スクーズィ）" },
+    { ja: "お願いします", local: "Per favore（ペル ファヴォーレ）" },
+    { ja: "はい・いいえ", local: "Sì・No（シ・ノ）" },
+    { ja: "いくらですか？", local: "Quanto costa?（クアント コスタ）" },
+    { ja: "英語を話せますか？", local: "Parla inglese?（パルラ イングレーゼ）" },
+    { ja: "さようなら", local: "Arrivederci（アリヴェデルチ）" },
+  ],
+  es: [
+    { ja: "こんにちは", local: "Hola（オラ）" },
+    { ja: "ありがとう", local: "Gracias（グラシアス）" },
+    { ja: "すみません", local: "Perdón（ペルドン）" },
+    { ja: "お願いします", local: "Por favor（ポル ファボール）" },
+    { ja: "はい・いいえ", local: "Sí・No（シ・ノ）" },
+    { ja: "いくらですか？", local: "¿Cuánto es?（クアント エス）" },
+    { ja: "英語を話せますか？", local: "¿Habla inglés?（アブラ イングレス）" },
+    { ja: "さようなら", local: "Adiós（アディオス）" },
+  ],
+  de: [
+    { ja: "こんにちは", local: "Guten Tag（グーテン ターク）" },
+    { ja: "ありがとう", local: "Danke（ダンケ）" },
+    { ja: "すみません", local: "Entschuldigung（エントシュルディグング）" },
+    { ja: "お願いします", local: "Bitte（ビッテ）" },
+    { ja: "はい・いいえ", local: "Ja・Nein（ヤー・ナイン）" },
+    { ja: "いくらですか？", local: "Was kostet das?（ヴァス コステット ダス）" },
+    { ja: "英語を話せますか？", local: "Sprechen Sie Englisch?（シュプレッヒェン ズィー エングリッシュ）" },
+    { ja: "さようなら", local: "Auf Wiedersehen（アウフ ヴィーダーゼーエン）" },
+  ],
+  gb: EN_PHRASES,
+  us: EN_PHRASES,
+  au: EN_PHRASES,
+  sg: EN_PHRASES,
+  kr: [
+    { ja: "こんにちは", local: "안녕하세요（アンニョンハセヨ）" },
+    { ja: "ありがとう", local: "감사합니다（カムサハムニダ）" },
+    { ja: "すみません", local: "저기요（チョギヨ）" },
+    { ja: "お願いします", local: "주세요（ジュセヨ）" },
+    { ja: "はい・いいえ", local: "네・아니요（ネ・アニヨ）" },
+    { ja: "いくらですか？", local: "얼마예요?（オルマエヨ）" },
+    { ja: "おいしい", local: "맛있어요（マシッソヨ）" },
+    { ja: "さようなら", local: "안녕히 가세요（アンニョンヒ カセヨ）" },
+  ],
+  tw: [
+    { ja: "こんにちは", local: "你好（ニーハオ）" },
+    { ja: "ありがとう", local: "謝謝（シェイシェイ）" },
+    { ja: "すみません", local: "不好意思（ブーハオイースー）" },
+    { ja: "いくらですか？", local: "多少錢？（ドゥオシャオチエン）" },
+    { ja: "はい・いいえ", local: "對・不對（ドゥイ・ブードゥイ）" },
+    { ja: "おいしい", local: "好吃（ハオチー）" },
+    { ja: "英語できますか？", local: "你會説英文嗎？（ニー フイ シュオ インウェン マ）" },
+    { ja: "さようなら", local: "再見（ザイジエン）" },
+  ],
+  th: [
+    { ja: "こんにちは", local: "สวัสดี（サワッディー）" },
+    { ja: "ありがとう", local: "ขอบคุณ（コープクン）" },
+    { ja: "すみません", local: "ขอโทษ（コートート）" },
+    { ja: "いくらですか？", local: "เท่าไหร่？（タオライ）" },
+    { ja: "はい・いいえ", local: "ใช่・ไม่（チャイ・マイ）" },
+    { ja: "おいしい", local: "อร่อย（アロイ）" },
+    { ja: "さようなら", local: "ลาก่อน（ラーコーン）" },
+  ],
+  vn: [
+    { ja: "こんにちは", local: "Xin chào（シンチャオ）" },
+    { ja: "ありがとう", local: "Cảm ơn（カムオン）" },
+    { ja: "すみません", local: "Xin lỗi（シンローイ）" },
+    { ja: "いくらですか？", local: "Bao nhiêu tiền?（バオ ニュー ティエン）" },
+    { ja: "はい・いいえ", local: "Vâng・Không（ヴァン・コン）" },
+    { ja: "おいしい", local: "Ngon（ゴン）" },
+    { ja: "さようなら", local: "Tạm biệt（タム ビエット）" },
+  ],
 };
 
 // 追加情報（あいさつ・言語・支払い・ベストシーズン）。基本情報にマージして使う。
@@ -357,5 +456,5 @@ export function countryInfo(code: string | null | undefined): CountryInfo | null
   const c = code.toLowerCase();
   const base = COUNTRY_INFO[c];
   if (!base) return null;
-  return { ...base, ...(COUNTRY_EXTRA[c] ?? {}) };
+  return { ...base, ...(COUNTRY_EXTRA[c] ?? {}), phrases: PHRASES[c] };
 }

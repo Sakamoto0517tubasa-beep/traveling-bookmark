@@ -1188,21 +1188,13 @@ function CountryInfoTab({ spots, trip }: { spots: Spot[]; trip: Trip }) {
     );
   }
 
+  // 基本情報は要点だけに絞る
   const rows: { emoji: string; label: string; value: string }[] = info
     ? [
         { emoji: "💶", label: "通貨", value: info.currency },
-        ...(info.language ? [{ emoji: "🗣️", label: "言語", value: info.language }] : []),
         { emoji: "🔌", label: "電圧・プラグ", value: info.plug },
-        { emoji: "💁", label: "チップ", value: info.tipping },
-        ...(info.payment ? [{ emoji: "💳", label: "支払い", value: info.payment }] : []),
-        { emoji: "🚨", label: "緊急番号", value: info.emergency },
-        { emoji: "🚰", label: "水道水", value: info.water },
         { emoji: "🕐", label: "日本との時差", value: info.timeDiff },
-        ...(info.bestSeason
-          ? [{ emoji: "🌸", label: "ベストシーズン", value: info.bestSeason }]
-          : []),
-        { emoji: "🛂", label: "ビザ（観光）", value: info.visa },
-        { emoji: "💡", label: "ひとことメモ", value: info.tips },
+        { emoji: "🚨", label: "緊急番号", value: info.emergency },
       ]
     : [];
 
@@ -1247,32 +1239,50 @@ function CountryInfoTab({ spots, trip }: { spots: Spot[]; trip: Trip }) {
 
       {info ? (
         <>
-          {/* 現地語のあいさつ */}
-          {info.hello && info.thanks && (
-            <div className="rounded-md border border-brand/20 bg-rose-50 p-4">
-              <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-brand">
-                💬 現地のあいさつ
+          {/* 現地のことば（フレーズ集） */}
+          {info.phrases && info.phrases.length > 0 ? (
+            <div className="overflow-hidden rounded-md border border-brand/20 bg-white">
+              <p className="flex items-center gap-1.5 border-b border-line bg-rose-50 px-4 py-2.5 text-xs font-bold text-brand">
+                💬 現地のことば{info.language ? `（${info.language}）` : ""}
               </p>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-md bg-white p-2.5 text-center">
-                  <p className="text-[11px] text-gray-400">こんにちは</p>
-                  <p className="mt-0.5 text-sm font-bold text-gray-800">{info.hello}</p>
+              {info.phrases.map((p, i) => (
+                <div
+                  key={p.ja}
+                  className={`flex items-center justify-between gap-3 px-4 py-2.5 ${
+                    i > 0 ? "border-t border-line" : ""
+                  }`}
+                >
+                  <span className="shrink-0 text-[13px] text-gray-500">{p.ja}</span>
+                  <span className="text-right text-sm font-bold text-gray-900">{p.local}</span>
                 </div>
-                <div className="rounded-md bg-white p-2.5 text-center">
-                  <p className="text-[11px] text-gray-400">ありがとう</p>
-                  <p className="mt-0.5 text-sm font-bold text-gray-800">{info.thanks}</p>
+              ))}
+            </div>
+          ) : (
+            info.hello &&
+            info.thanks && (
+              <div className="rounded-md border border-brand/20 bg-rose-50 p-4">
+                <p className="mb-2 text-xs font-bold text-brand">💬 現地のあいさつ</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-md bg-white p-2.5 text-center">
+                    <p className="text-[11px] text-gray-400">こんにちは</p>
+                    <p className="mt-0.5 text-sm font-bold text-gray-800">{info.hello}</p>
+                  </div>
+                  <div className="rounded-md bg-white p-2.5 text-center">
+                    <p className="text-[11px] text-gray-400">ありがとう</p>
+                    <p className="mt-0.5 text-sm font-bold text-gray-800">{info.thanks}</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )
           )}
 
-          {/* 基本情報リスト */}
+          {/* 基本メモ（要点だけ） */}
           <div className="overflow-hidden rounded-md border border-line bg-white">
-            {rows.map((r, i) => (
-              <div
-                key={r.label}
-                className={`flex gap-3 px-4 py-3 ${i > 0 ? "border-t border-line" : ""}`}
-              >
+            <p className="border-b border-line px-4 py-2.5 text-xs font-bold text-gray-500">
+              基本メモ
+            </p>
+            {rows.map((r) => (
+              <div key={r.label} className="flex gap-3 border-b border-line px-4 py-3 last:border-b-0">
                 <span className="shrink-0 text-lg leading-6">{r.emoji}</span>
                 <div className="min-w-0">
                   <p className="text-[11px] font-bold text-gray-400">{r.label}</p>
