@@ -1188,10 +1188,22 @@ function CountryInfoTab({ spots }: { spots: Spot[] }) {
     );
   }
 
+  return <CountryPhrases code={code} info={info} />;
+}
+
+function CountryPhrases({
+  code,
+  info,
+}: {
+  code: string;
+  info: ReturnType<typeof countryInfo>;
+}) {
   const groups = info?.phraseGroups ?? [];
+  const [sel, setSel] = useState(0);
+  const current = groups[sel] ?? groups[0];
 
   return (
-    <section className="space-y-4 p-4">
+    <section className="space-y-3 p-4">
       {/* 国ヘッダー */}
       <div className="flex items-center gap-3 rounded-md border border-line bg-white p-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1210,24 +1222,38 @@ function CountryInfoTab({ spots }: { spots: Spot[] }) {
 
       {groups.length > 0 ? (
         <>
-          {groups.map((g) => (
-            <div key={g.title} className="overflow-hidden rounded-md border border-line bg-white">
-              <p className="flex items-center gap-1.5 border-b border-line bg-rose-50 px-4 py-2.5 text-xs font-bold text-brand">
+          {/* カテゴリ選択タブ（横スクロール） */}
+          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {groups.map((g, i) => (
+              <button
+                key={g.title}
+                onClick={() => setSel(i)}
+                className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-bold ${
+                  i === sel
+                    ? "bg-brand text-white"
+                    : "border border-line bg-white text-gray-500 hover:bg-gray-50"
+                }`}
+              >
                 {g.title}
-              </p>
-              {g.items.map((p, i) => (
-                <div
-                  key={p.ja + i}
-                  className={`flex items-center justify-between gap-3 px-4 py-2.5 ${
-                    i > 0 ? "border-t border-line" : ""
-                  }`}
-                >
-                  <span className="shrink-0 text-[13px] text-gray-500">{p.ja}</span>
-                  <span className="text-right text-sm font-bold text-gray-900">{p.local}</span>
-                </div>
-              ))}
-            </div>
-          ))}
+              </button>
+            ))}
+          </div>
+
+          {/* 選択中カテゴリのフレーズ */}
+          <div className="overflow-hidden rounded-md border border-line bg-white">
+            {current.items.map((p, i) => (
+              <div
+                key={p.ja + i}
+                className={`flex items-center justify-between gap-3 px-4 py-2.5 ${
+                  i > 0 ? "border-t border-line" : ""
+                }`}
+              >
+                <span className="shrink-0 text-[13px] text-gray-500">{p.ja}</span>
+                <span className="text-right text-sm font-bold text-gray-900">{p.local}</span>
+              </div>
+            ))}
+          </div>
+
           <p className="px-1 text-[11px] leading-relaxed text-gray-400">
             ※ カッコ内は読み方の目安です。発音は現地で少し違うことがあります。
           </p>
