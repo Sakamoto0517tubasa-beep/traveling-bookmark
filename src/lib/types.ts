@@ -38,6 +38,7 @@ export type Spot = {
   hours_memo: string | null;
   day: number | null;
   order_index: number;
+  likes: number; // 行きたい度（ハートのタップ回数）
   visited: boolean;
   memory_note: string | null;
   memory_photo: string | null;

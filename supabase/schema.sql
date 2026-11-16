@@ -34,6 +34,7 @@ create table if not exists om_spots (
   hours_memo    text,                                 -- 営業時間・メモ
   day           int,                                  -- しおりの何日目か（null=未割当）
   order_index   int not null default 0,
+  likes         int not null default 0,               -- 行きたい度（ハートのタップ回数）
   visited       boolean not null default false,
   memory_note   text,                                 -- 思い出のひとこと
   memory_photo  text,                                 -- 思い出の写真URL

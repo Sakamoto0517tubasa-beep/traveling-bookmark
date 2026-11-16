@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -18,12 +18,14 @@ import {
   ExternalLink,
   Navigation,
   Globe,
+  Heart,
 } from "lucide-react";
 import { hasSupabase } from "@/lib/supabase";
 import {
   getTrip,
   updateTrip,
   listSpots,
+  updateSpot,
   deleteSpot,
   listExpenses,
   addExpense,
@@ -91,6 +93,20 @@ function TripView() {
   const [showAdd, setShowAdd] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // 行きたい度（ハート）：連打に耐えるよう ref で集計し、DB保存はデバウンス
+  const likeRef = useRef<Record<string, number>>({});
+  const likeTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  function likeSpot(id: string) {
+    const next = (likeRef.current[id] ?? 0) + 1;
+    likeRef.current[id] = next;
+    setSpots((prev) => prev.map((x) => (x.id === id ? { ...x, likes: next } : x)));
+    clearTimeout(likeTimers.current[id]);
+    likeTimers.current[id] = setTimeout(() => {
+      updateSpot(id, { likes: next }).catch(() => {});
+    }, 500);
+  }
+
   const load = useCallback(async () => {
     if (!hasSupabase || !id) {
       setLoading(false);
@@ -99,6 +115,7 @@ function TripView() {
     const [t, s, e] = await Promise.all([getTrip(id), listSpots(id), listExpenses(id)]);
     setTrip(t);
     setSpots(s);
+    likeRef.current = Object.fromEntries(s.map((sp) => [sp.id, sp.likes ?? 0]));
     setExpenses(e);
     setLoading(false);
   }, [id]);
@@ -220,7 +237,7 @@ function TripView() {
             </div>
           )}
           <section className="p-4">
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-1 flex items-center justify-between">
               <h2 className="text-sm font-bold text-gray-500">スポット（{spots.length}）</h2>
               <button
                 onClick={() => setShowAdd(true)}
@@ -230,6 +247,11 @@ function TripView() {
                 追加
               </button>
             </div>
+            {spots.length > 0 && (
+              <p className="mb-3 text-[11px] text-gray-400">
+                ❤️ を押すほど上に！ふたりで「行きたい！」を連打してランキングにしよう
+              </p>
+            )}
             {spots.length === 0 ? (
               <div className="rounded-md border border-dashed border-line bg-white py-14 text-center">
                 <p className="text-sm font-bold text-gray-600">まだスポットがありません</p>
@@ -237,19 +259,26 @@ function TripView() {
               </div>
             ) : (
               <ul className="grid gap-2">
-                {spots.map((s) => (
-                  <SpotCard
-                    key={s.id}
-                    spot={s}
-                    trip={trip}
-                    onClick={() => router.push(`/trip/${id}/spot/${s.id}`)}
-                    onDelete={async () => {
-                      if (!confirm(`「${s.name}」を削除しますか？`)) return;
-                      await deleteSpot(s.id);
-                      await load();
-                    }}
-                  />
-                ))}
+                {[...spots]
+                  .sort(
+                    (a, b) =>
+                      (b.likes ?? 0) - (a.likes ?? 0) || a.order_index - b.order_index,
+                  )
+                  .map((s, i) => (
+                    <SpotCard
+                      key={s.id}
+                      spot={s}
+                      trip={trip}
+                      rank={i + 1}
+                      onLike={() => likeSpot(s.id)}
+                      onClick={() => router.push(`/trip/${id}/spot/${s.id}`)}
+                      onDelete={async () => {
+                        if (!confirm(`「${s.name}」を削除しますか？`)) return;
+                        await deleteSpot(s.id);
+                        await load();
+                      }}
+                    />
+                  ))}
               </ul>
             )}
           </section>
@@ -312,16 +341,22 @@ function TripView() {
 function SpotCard({
   spot,
   trip,
+  rank,
   onClick,
   onDelete,
+  onLike,
 }: {
   spot: Spot;
   trip: Trip;
+  rank: number;
   onClick: () => void;
   onDelete: () => void;
+  onLike: () => void;
 }) {
   const meta = CATEGORY_META[spot.category];
   const cost = (spot.admission_fee || 0) + (spot.hotel_fee || 0);
+  const likes = spot.likes ?? 0;
+  const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
   return (
     <li>
       <div
@@ -333,17 +368,27 @@ function SpotCard({
         }}
         className="flex w-full cursor-pointer items-center gap-3 rounded-md border border-line bg-white p-2.5 text-left hover:bg-gray-50"
       >
-        {spot.photo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={spot.photo} alt="" className="size-16 shrink-0 rounded object-cover" />
-        ) : (
-          <div
-            className="flex size-16 shrink-0 items-center justify-center rounded text-white"
-            style={{ backgroundColor: meta.color }}
+        <div className="relative size-16 shrink-0">
+          {spot.photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={spot.photo} alt="" className="size-16 rounded object-cover" />
+          ) : (
+            <div
+              className="flex size-16 items-center justify-center rounded text-white"
+              style={{ backgroundColor: meta.color }}
+            >
+              <MapIcon className="size-5" />
+            </div>
+          )}
+          {/* 順位バッジ */}
+          <span
+            className={`absolute -left-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-white px-1 text-[11px] font-bold shadow ${
+              medal ? "bg-white" : "bg-navy text-white"
+            }`}
           >
-            <MapIcon className="size-5" />
-          </div>
-        )}
+            {medal ?? rank}
+          </span>
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span
@@ -360,13 +405,25 @@ function SpotCard({
           </div>
           <p className="mt-1 truncate text-sm font-bold text-gray-900">{spot.name}</p>
           {spot.address && <p className="truncate text-[11px] text-gray-400">{spot.address}</p>}
+          {cost > 0 && (
+            <p className="tnum mt-0.5 text-[11px] text-gray-400">
+              {formatLocal(cost, trip.currency_code)}（{formatYen(toYen(cost, trip.currency_rate))}）
+            </p>
+          )}
         </div>
-        {cost > 0 && (
-          <div className="shrink-0 text-right">
-            <p className="tnum text-xs font-bold text-gray-700">{formatLocal(cost, trip.currency_code)}</p>
-            <p className="tnum text-[10px] text-gray-400">{formatYen(toYen(cost, trip.currency_rate))}</p>
-          </div>
-        )}
+        {/* 行きたい度（ハート・連打OK） */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onLike();
+          }}
+          className="flex shrink-0 flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition-transform hover:bg-rose-50 active:scale-90"
+          title="「行きたい！」を押す"
+          aria-label="行きたい！"
+        >
+          <Heart className={`size-6 ${likes > 0 ? "fill-brand text-brand" : "text-gray-300"}`} />
+          <span className="tnum text-[11px] font-bold text-gray-500">{likes}</span>
+        </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
