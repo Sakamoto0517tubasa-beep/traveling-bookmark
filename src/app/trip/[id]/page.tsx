@@ -330,7 +330,7 @@ function TripView() {
       )}
       {tab === "links" && <LinksTab trip={trip} />}
       {tab === "packing" && <PackingTab trip={trip} />}
-      {tab === "info" && <CountryInfoTab spots={spots} trip={trip} />}
+      {tab === "info" && <CountryInfoTab spots={spots} />}
 
       {/* 下タブ */}
       <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto flex max-w-2xl border-t border-line bg-white">
@@ -1165,7 +1165,7 @@ function PackingTab({ trip }: { trip: Trip }) {
 }
 
 // ---- 現地（国の基本情報）----
-function CountryInfoTab({ spots, trip }: { spots: Spot[]; trip: Trip }) {
+function CountryInfoTab({ spots }: { spots: Spot[] }) {
   // スポットの住所から国コードを推定（最初に見つかったもの）
   let code: string | null = null;
   for (const s of spots) {
@@ -1181,43 +1181,14 @@ function CountryInfoTab({ spots, trip }: { spots: Spot[]; trip: Trip }) {
           <Globe className="mx-auto mb-2 size-6 text-gray-300" />
           <p className="text-sm font-bold text-gray-600">まだ行き先がわかりません</p>
           <p className="mt-1 text-xs text-gray-400">
-            マップでスポットを登録すると、その国の基本情報が出ます
+            マップでスポットを登録すると、その国のことばが出ます
           </p>
         </div>
       </section>
     );
   }
 
-  // 基本情報は要点だけに絞る
-  const rows: { emoji: string; label: string; value: string }[] = info
-    ? [
-        { emoji: "💶", label: "通貨", value: info.currency },
-        { emoji: "🔌", label: "電圧・プラグ", value: info.plug },
-        { emoji: "🕐", label: "日本との時差", value: info.timeDiff },
-        { emoji: "🚨", label: "緊急番号", value: info.emergency },
-      ]
-    : [];
-
-  // お役立ちリンク
-  const links = [
-    {
-      label: "外務省 海外安全ホームページ",
-      sub: "治安・渡航情報の最新チェック",
-      url: "https://www.anzen.mofa.go.jp/",
-    },
-    {
-      label: "Google 翻訳",
-      sub: info?.language ? `日本語 ⇄ ${info.language}` : "現地のことばに翻訳",
-      url: info?.langCode
-        ? `https://translate.google.com/?sl=ja&tl=${info.langCode}&op=translate`
-        : "https://translate.google.com/",
-    },
-    {
-      label: "通貨レートを調べる",
-      sub: `1 ${trip.currency_code} は何円？`,
-      url: `https://www.google.com/search?q=${encodeURIComponent(`1 ${trip.currency_code} 円`)}`,
-    },
-  ];
+  const groups = info?.phraseGroups ?? [];
 
   return (
     <section className="space-y-4 p-4">
@@ -1230,24 +1201,23 @@ function CountryInfoTab({ spots, trip }: { spots: Spot[]; trip: Trip }) {
           className="h-9 w-14 shrink-0 rounded border border-line object-cover"
         />
         <div>
-          <p className="text-[11px] font-bold text-gray-400">旅行先の基本情報</p>
+          <p className="text-[11px] font-bold text-gray-400">現地のことば</p>
           <h2 className="text-lg font-bold text-gray-900">
-            {info ? info.name : code.toUpperCase()}
+            {info ? `${info.name}${info.language ? `（${info.language}）` : ""}` : code.toUpperCase()}
           </h2>
         </div>
       </div>
 
-      {info ? (
+      {groups.length > 0 ? (
         <>
-          {/* 現地のことば（フレーズ集） */}
-          {info.phrases && info.phrases.length > 0 ? (
-            <div className="overflow-hidden rounded-md border border-brand/20 bg-white">
+          {groups.map((g) => (
+            <div key={g.title} className="overflow-hidden rounded-md border border-line bg-white">
               <p className="flex items-center gap-1.5 border-b border-line bg-rose-50 px-4 py-2.5 text-xs font-bold text-brand">
-                💬 現地のことば{info.language ? `（${info.language}）` : ""}
+                {g.title}
               </p>
-              {info.phrases.map((p, i) => (
+              {g.items.map((p, i) => (
                 <div
-                  key={p.ja}
+                  key={p.ja + i}
                   className={`flex items-center justify-between gap-3 px-4 py-2.5 ${
                     i > 0 ? "border-t border-line" : ""
                   }`}
@@ -1257,73 +1227,16 @@ function CountryInfoTab({ spots, trip }: { spots: Spot[]; trip: Trip }) {
                 </div>
               ))}
             </div>
-          ) : (
-            info.hello &&
-            info.thanks && (
-              <div className="rounded-md border border-brand/20 bg-rose-50 p-4">
-                <p className="mb-2 text-xs font-bold text-brand">💬 現地のあいさつ</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-md bg-white p-2.5 text-center">
-                    <p className="text-[11px] text-gray-400">こんにちは</p>
-                    <p className="mt-0.5 text-sm font-bold text-gray-800">{info.hello}</p>
-                  </div>
-                  <div className="rounded-md bg-white p-2.5 text-center">
-                    <p className="text-[11px] text-gray-400">ありがとう</p>
-                    <p className="mt-0.5 text-sm font-bold text-gray-800">{info.thanks}</p>
-                  </div>
-                </div>
-              </div>
-            )
-          )}
-
-          {/* 基本メモ（要点だけ） */}
-          <div className="overflow-hidden rounded-md border border-line bg-white">
-            <p className="border-b border-line px-4 py-2.5 text-xs font-bold text-gray-500">
-              基本メモ
-            </p>
-            {rows.map((r) => (
-              <div key={r.label} className="flex gap-3 border-b border-line px-4 py-3 last:border-b-0">
-                <span className="shrink-0 text-lg leading-6">{r.emoji}</span>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-bold text-gray-400">{r.label}</p>
-                  <p className="text-sm leading-relaxed text-gray-800">{r.value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* お役立ちリンク */}
-          <div className="overflow-hidden rounded-md border border-line bg-white">
-            <p className="border-b border-line px-4 py-2.5 text-xs font-bold text-gray-500">
-              お役立ちリンク
-            </p>
-            {links.map((l) => (
-              <a
-                key={l.label}
-                href={l.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 border-b border-line px-4 py-3 last:border-b-0 hover:bg-gray-50"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-navy">{l.label}</p>
-                  <p className="truncate text-[11px] text-gray-400">{l.sub}</p>
-                </div>
-                <ExternalLink className="size-4 shrink-0 text-gray-300" />
-              </a>
-            ))}
-          </div>
-
+          ))}
           <p className="px-1 text-[11px] leading-relaxed text-gray-400">
-            ※ 情報は目安です。ビザ・治安・入国ルールは変わることがあるので、渡航前に外務省
-            「海外安全ホームページ」などで最新情報を確認してください。
+            ※ カッコ内は読み方の目安です。発音は現地で少し違うことがあります。
           </p>
         </>
       ) : (
         <div className="rounded-md border border-dashed border-line bg-white py-10 text-center">
-          <p className="text-sm font-bold text-gray-600">この国の詳細情報は準備中です</p>
+          <p className="text-sm font-bold text-gray-600">この国のフレーズは準備中です</p>
           <p className="mt-1 text-xs text-gray-400">
-            通貨・チップ・電源などは渡航前に確認してください
+            「こんにちは」「ありがとう」などは現地で調べてみてください
           </p>
         </div>
       )}

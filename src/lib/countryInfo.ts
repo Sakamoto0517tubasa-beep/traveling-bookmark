@@ -19,104 +19,426 @@ export type CountryInfo = {
   thanks?: string; // 現地語「ありがとう」
   payment?: string; // 支払い事情（現金・カード）
   bestSeason?: string; // ベストシーズン
-  phrases?: { ja: string; local: string }[]; // 旅行で使える簡単フレーズ
+  phraseGroups?: PhraseGroup[]; // カテゴリ別の現地フレーズ集
 };
 
-// 英語圏共通のフレーズ
-const EN_PHRASES: { ja: string; local: string }[] = [
-  { ja: "こんにちは", local: "Hello（ハロー）" },
-  { ja: "ありがとう", local: "Thank you（サンキュー）" },
-  { ja: "すみません", local: "Excuse me（エクスキューズ ミー）" },
-  { ja: "お願いします", local: "Please（プリーズ）" },
-  { ja: "はい・いいえ", local: "Yes・No（イエス・ノー）" },
-  { ja: "いくらですか？", local: "How much is it?（ハウ マッチ イズ イット）" },
-  { ja: "〜はどこですか？", local: "Where is ...?（ウェア イズ）" },
-  { ja: "さようなら", local: "Goodbye（グッバイ）" },
+export type PhraseGroup = { title: string; items: { ja: string; local: string }[] };
+
+// 英語圏共通のフレーズ（カテゴリ別）
+const EN_GROUPS: PhraseGroup[] = [
+  {
+    title: "あいさつ・基本",
+    items: [
+      { ja: "こんにちは", local: "Hello（ハロー）" },
+      { ja: "やあ", local: "Hi（ハイ）" },
+      { ja: "おはよう", local: "Good morning（グッモーニング）" },
+      { ja: "さようなら", local: "Goodbye（グッバイ）" },
+      { ja: "ありがとう", local: "Thank you（サンキュー）" },
+      { ja: "どういたしまして", local: "You're welcome（ユア ウェルカム）" },
+      { ja: "お願いします", local: "Please（プリーズ）" },
+      { ja: "ごめんなさい", local: "I'm sorry（アイム ソーリー）" },
+      { ja: "すみません（呼びかけ）", local: "Excuse me（エクスキューズ ミー）" },
+      { ja: "はい / いいえ", local: "Yes / No（イエス / ノー）" },
+    ],
+  },
+  {
+    title: "返事・お願い",
+    items: [
+      { ja: "OKです", local: "OK / Sure（オーケー / シュア）" },
+      { ja: "わかりません", local: "I don't understand（アイ ドント アンダスタンド）" },
+      { ja: "英語を話せますか？", local: "Do you speak English?（ドゥ ユー スピーク イングリッシュ）" },
+      { ja: "もう一度お願いします", local: "Could you repeat that?（クッジュー リピート ザット）" },
+      { ja: "ゆっくり話してください", local: "Please speak slowly（プリーズ スピーク スローリー）" },
+    ],
+  },
+  {
+    title: "レストラン・食事",
+    items: [
+      { ja: "メニューをください", local: "Can I see the menu?（キャナイ シー ザ メニュー）" },
+      { ja: "これをください", local: "I'll have this（アイル ハヴ ディス）" },
+      { ja: "お会計お願いします", local: "Check, please（チェック プリーズ）" },
+      { ja: "おいしい！", local: "It's delicious!（イッツ デリシャス）" },
+      { ja: "乾杯！", local: "Cheers!（チアーズ）" },
+    ],
+  },
+  {
+    title: "買い物・お金",
+    items: [
+      { ja: "いくらですか？", local: "How much is it?（ハウ マッチ イズ イット）" },
+      { ja: "カードで払えますか？", local: "Can I pay by card?（キャナイ ペイ バイ カード）" },
+      { ja: "見ているだけです", local: "I'm just looking（アイム ジャスト ルッキング）" },
+      { ja: "これください", local: "I'll take this（アイル テイク ディス）" },
+    ],
+  },
+  {
+    title: "移動・道案内",
+    items: [
+      { ja: "〜はどこですか？", local: "Where is ...?（ウェア イズ）" },
+      { ja: "トイレはどこ？", local: "Where is the toilet?（ウェア イズ ザ トイレット）" },
+      { ja: "ここに行きたい（地図を見せて）", local: "I want to go here（アイ ウォント トゥ ゴー ヒア）" },
+      { ja: "まっすぐ / 右 / 左", local: "Straight / right / left（ストレート / ライト / レフト）" },
+    ],
+  },
+  {
+    title: "困ったとき",
+    items: [
+      { ja: "道に迷いました", local: "I'm lost（アイム ロスト）" },
+      { ja: "助けて！", local: "Help!（ヘルプ）" },
+      { ja: "警察を呼んでください", local: "Call the police（コール ザ ポリス）" },
+      { ja: "気分が悪いです", local: "I feel sick（アイ フィール シック）" },
+    ],
+  },
 ];
 
-// 旅行で使える簡単フレーズ
-const PHRASES: Record<string, { ja: string; local: string }[]> = {
+// カテゴリ別の現地フレーズ集
+const PHRASE_GROUPS: Record<string, PhraseGroup[]> = {
   fr: [
-    { ja: "こんにちは", local: "Bonjour（ボンジュール）" },
-    { ja: "ありがとう", local: "Merci（メルシー）" },
-    { ja: "すみません", local: "Pardon（パルドン）" },
-    { ja: "お願いします", local: "S'il vous plaît（シルヴプレ）" },
-    { ja: "はい・いいえ", local: "Oui・Non（ウィ・ノン）" },
-    { ja: "いくらですか？", local: "C'est combien ?（セ コンビヤン）" },
-    { ja: "英語を話せますか？", local: "Vous parlez anglais ?（ヴ パルレ アングレ）" },
-    { ja: "さようなら", local: "Au revoir（オ ルヴォワール）" },
+    {
+      title: "あいさつ・基本",
+      items: [
+        { ja: "こんにちは", local: "Bonjour（ボンジュール）" },
+        { ja: "こんばんは", local: "Bonsoir（ボンソワール）" },
+        { ja: "やあ / バイバイ", local: "Salut（サリュ）" },
+        { ja: "さようなら", local: "Au revoir（オ ルヴォワール）" },
+        { ja: "おやすみなさい", local: "Bonne nuit（ボンニュイ）" },
+        { ja: "ありがとう", local: "Merci（メルシー）" },
+        { ja: "どういたしまして", local: "De rien（ドゥ リアン）" },
+        { ja: "お願いします", local: "S'il vous plaît（シルヴプレ）" },
+        { ja: "ごめんなさい", local: "Pardon（パルドン）" },
+        { ja: "すみません（呼びかけ）", local: "Excusez-moi（エクスキュゼ モワ）" },
+        { ja: "はい / いいえ", local: "Oui / Non（ウィ / ノン）" },
+      ],
+    },
+    {
+      title: "返事・お願い",
+      items: [
+        { ja: "OKです", local: "D'accord（ダコール）" },
+        { ja: "わかりません", local: "Je ne comprends pas（ジュ ヌ コンプラン パ）" },
+        { ja: "英語を話せますか？", local: "Vous parlez anglais ?（ヴ パルレ アングレ）" },
+        { ja: "もう一度お願いします", local: "Répétez, s'il vous plaît（レペテ シルヴプレ）" },
+        { ja: "大丈夫です", local: "Ça va（サ ヴァ）" },
+      ],
+    },
+    {
+      title: "レストラン・食事",
+      items: [
+        { ja: "メニューをください", local: "La carte, s'il vous plaît（ラ カルト シルヴプレ）" },
+        { ja: "これをください", local: "Je voudrais ça（ジュ ヴドレ サ）" },
+        { ja: "お会計お願いします", local: "L'addition, s'il vous plaît（ラディシオン シルヴプレ）" },
+        { ja: "水をください", local: "De l'eau, s'il vous plaît（ドゥ ロー シルヴプレ）" },
+        { ja: "おいしい！", local: "C'est délicieux !（セ デリシュ）" },
+        { ja: "乾杯！", local: "Santé !（サンテ）" },
+      ],
+    },
+    {
+      title: "買い物・お金",
+      items: [
+        { ja: "いくらですか？", local: "C'est combien ?（セ コンビヤン）" },
+        { ja: "高いです", local: "C'est cher（セ シェール）" },
+        { ja: "これください", local: "Je prends ça（ジュ プラン サ）" },
+        { ja: "カードで払えますか？", local: "Je peux payer par carte ?（ジュ プ ペイエ パル カルト）" },
+        { ja: "見ているだけです", local: "Je regarde（ジュ ルガルド）" },
+      ],
+    },
+    {
+      title: "移動・道案内",
+      items: [
+        { ja: "〜はどこですか？", local: "Où est... ?（ウ エ）" },
+        { ja: "トイレはどこ？", local: "Où sont les toilettes ?（ウ ソン レ トワレット）" },
+        { ja: "駅はどこ？", local: "Où est la gare ?（ウ エ ラ ガール）" },
+        { ja: "まっすぐ / 右 / 左", local: "Tout droit / à droite / à gauche（トゥ ドロワ / ア ドロワット / ア ゴーシュ）" },
+      ],
+    },
+    {
+      title: "困ったとき",
+      items: [
+        { ja: "道に迷いました", local: "Je suis perdu(e)（ジュ スュイ ペルデュ）" },
+        { ja: "助けて！", local: "Au secours !（オ スクール）" },
+        { ja: "警察を呼んでください", local: "Appelez la police（アプレ ラ ポリス）" },
+        { ja: "気分が悪いです", local: "Je me sens mal（ジュ ム サン マル）" },
+      ],
+    },
   ],
   it: [
-    { ja: "こんにちは", local: "Buongiorno（ボンジョルノ）" },
-    { ja: "ありがとう", local: "Grazie（グラッツィエ）" },
-    { ja: "すみません", local: "Scusi（スクーズィ）" },
-    { ja: "お願いします", local: "Per favore（ペル ファヴォーレ）" },
-    { ja: "はい・いいえ", local: "Sì・No（シ・ノ）" },
-    { ja: "いくらですか？", local: "Quanto costa?（クアント コスタ）" },
-    { ja: "英語を話せますか？", local: "Parla inglese?（パルラ イングレーゼ）" },
-    { ja: "さようなら", local: "Arrivederci（アリヴェデルチ）" },
+    {
+      title: "あいさつ・基本",
+      items: [
+        { ja: "こんにちは", local: "Buongiorno（ボンジョルノ）" },
+        { ja: "こんばんは", local: "Buonasera（ボナセーラ）" },
+        { ja: "やあ / バイバイ", local: "Ciao（チャオ）" },
+        { ja: "さようなら", local: "Arrivederci（アリヴェデルチ）" },
+        { ja: "ありがとう", local: "Grazie（グラッツィエ）" },
+        { ja: "どういたしまして", local: "Prego（プレーゴ）" },
+        { ja: "お願いします", local: "Per favore（ペル ファヴォーレ）" },
+        { ja: "すみません", local: "Scusi（スクーズィ）" },
+        { ja: "はい / いいえ", local: "Sì / No（シ / ノ）" },
+      ],
+    },
+    {
+      title: "レストラン・食事",
+      items: [
+        { ja: "メニューをください", local: "Il menu, per favore（イル メヌ ペル ファヴォーレ）" },
+        { ja: "お会計お願いします", local: "Il conto, per favore（イル コント ペル ファヴォーレ）" },
+        { ja: "おいしい！", local: "È buono!（エ ブオーノ）" },
+        { ja: "乾杯！", local: "Salute!（サルーテ）" },
+      ],
+    },
+    {
+      title: "買い物・移動",
+      items: [
+        { ja: "いくらですか？", local: "Quanto costa?（クアント コスタ）" },
+        { ja: "カードで払えますか？", local: "Posso pagare con la carta?（ポッソ パガーレ コン ラ カルタ）" },
+        { ja: "〜はどこですか？", local: "Dov'è...?（ドヴェ）" },
+        { ja: "トイレはどこ？", local: "Dov'è il bagno?（ドヴェ イル バーニョ）" },
+        { ja: "まっすぐ / 右 / 左", local: "Dritto / destra / sinistra（ドリット / デストラ / シニストラ）" },
+      ],
+    },
+    {
+      title: "困ったとき",
+      items: [
+        { ja: "道に迷いました", local: "Mi sono perso（ミ ソノ ペルソ）" },
+        { ja: "助けて！", local: "Aiuto!（アイユート）" },
+        { ja: "英語を話せますか？", local: "Parla inglese?（パルラ イングレーゼ）" },
+      ],
+    },
   ],
   es: [
-    { ja: "こんにちは", local: "Hola（オラ）" },
-    { ja: "ありがとう", local: "Gracias（グラシアス）" },
-    { ja: "すみません", local: "Perdón（ペルドン）" },
-    { ja: "お願いします", local: "Por favor（ポル ファボール）" },
-    { ja: "はい・いいえ", local: "Sí・No（シ・ノ）" },
-    { ja: "いくらですか？", local: "¿Cuánto es?（クアント エス）" },
-    { ja: "英語を話せますか？", local: "¿Habla inglés?（アブラ イングレス）" },
-    { ja: "さようなら", local: "Adiós（アディオス）" },
+    {
+      title: "あいさつ・基本",
+      items: [
+        { ja: "こんにちは", local: "Hola（オラ）" },
+        { ja: "おはよう", local: "Buenos días（ブエノス ディアス）" },
+        { ja: "こんばんは", local: "Buenas noches（ブエナス ノチェス）" },
+        { ja: "さようなら", local: "Adiós（アディオス）" },
+        { ja: "ありがとう", local: "Gracias（グラシアス）" },
+        { ja: "どういたしまして", local: "De nada（デ ナダ）" },
+        { ja: "お願いします", local: "Por favor（ポル ファボール）" },
+        { ja: "すみません", local: "Perdón（ペルドン）" },
+        { ja: "はい / いいえ", local: "Sí / No（シ / ノ）" },
+      ],
+    },
+    {
+      title: "レストラン・食事",
+      items: [
+        { ja: "メニューをください", local: "La carta, por favor（ラ カルタ ポル ファボール）" },
+        { ja: "お会計お願いします", local: "La cuenta, por favor（ラ クエンタ ポル ファボール）" },
+        { ja: "おいしい！", local: "¡Está rico!（エスタ リコ）" },
+        { ja: "乾杯！", local: "¡Salud!（サルー）" },
+      ],
+    },
+    {
+      title: "買い物・移動",
+      items: [
+        { ja: "いくらですか？", local: "¿Cuánto cuesta?（クアント クエスタ）" },
+        { ja: "カードで払えますか？", local: "¿Puedo pagar con tarjeta?（プエド パガール コン タルヘタ）" },
+        { ja: "〜はどこですか？", local: "¿Dónde está...?（ドンデ エスタ）" },
+        { ja: "トイレはどこ？", local: "¿Dónde está el baño?（ドンデ エスタ エル バニョ）" },
+        { ja: "まっすぐ / 右 / 左", local: "Recto / derecha / izquierda（レクト / デレチャ / イスキエルダ）" },
+      ],
+    },
+    {
+      title: "困ったとき",
+      items: [
+        { ja: "道に迷いました", local: "Estoy perdido（エストイ ペルディード）" },
+        { ja: "助けて！", local: "¡Ayuda!（アユダ）" },
+        { ja: "英語を話せますか？", local: "¿Habla inglés?（アブラ イングレス）" },
+      ],
+    },
   ],
   de: [
-    { ja: "こんにちは", local: "Guten Tag（グーテン ターク）" },
-    { ja: "ありがとう", local: "Danke（ダンケ）" },
-    { ja: "すみません", local: "Entschuldigung（エントシュルディグング）" },
-    { ja: "お願いします", local: "Bitte（ビッテ）" },
-    { ja: "はい・いいえ", local: "Ja・Nein（ヤー・ナイン）" },
-    { ja: "いくらですか？", local: "Was kostet das?（ヴァス コステット ダス）" },
-    { ja: "英語を話せますか？", local: "Sprechen Sie Englisch?（シュプレッヒェン ズィー エングリッシュ）" },
-    { ja: "さようなら", local: "Auf Wiedersehen（アウフ ヴィーダーゼーエン）" },
+    {
+      title: "あいさつ・基本",
+      items: [
+        { ja: "こんにちは", local: "Guten Tag（グーテン ターク）" },
+        { ja: "おはよう", local: "Guten Morgen（グーテン モルゲン）" },
+        { ja: "やあ / バイバイ", local: "Tschüss（チュース）" },
+        { ja: "さようなら", local: "Auf Wiedersehen（アウフ ヴィーダーゼーエン）" },
+        { ja: "ありがとう", local: "Danke（ダンケ）" },
+        { ja: "お願いします / どうぞ", local: "Bitte（ビッテ）" },
+        { ja: "すみません", local: "Entschuldigung（エントシュルディグング）" },
+        { ja: "はい / いいえ", local: "Ja / Nein（ヤー / ナイン）" },
+      ],
+    },
+    {
+      title: "レストラン・食事",
+      items: [
+        { ja: "メニューをください", local: "Die Karte, bitte（ディー カルテ ビッテ）" },
+        { ja: "お会計お願いします", local: "Die Rechnung, bitte（ディー レヒヌング ビッテ）" },
+        { ja: "おいしい！", local: "Das schmeckt gut!（ダス シュメックト グート）" },
+        { ja: "乾杯！", local: "Prost!（プロースト）" },
+      ],
+    },
+    {
+      title: "買い物・移動",
+      items: [
+        { ja: "いくらですか？", local: "Was kostet das?（ヴァス コステット ダス）" },
+        { ja: "カードで払えますか？", local: "Kann ich mit Karte zahlen?（カン イッヒ ミット カルテ ツァーレン）" },
+        { ja: "〜はどこですか？", local: "Wo ist...?（ヴォー イスト）" },
+        { ja: "トイレはどこ？", local: "Wo ist die Toilette?（ヴォー イスト ディー トワレッテ）" },
+        { ja: "まっすぐ / 右 / 左", local: "Geradeaus / rechts / links（ゲラーデアウス / レヒツ / リンクス）" },
+      ],
+    },
+    {
+      title: "困ったとき",
+      items: [
+        { ja: "道に迷いました", local: "Ich habe mich verlaufen（イッヒ ハーベ ミッヒ フェアラウフェン）" },
+        { ja: "助けて！", local: "Hilfe!（ヒルフェ）" },
+        { ja: "英語を話せますか？", local: "Sprechen Sie Englisch?（シュプレッヒェン ズィー エングリッシュ）" },
+      ],
+    },
   ],
-  gb: EN_PHRASES,
-  us: EN_PHRASES,
-  au: EN_PHRASES,
-  sg: EN_PHRASES,
+  gb: EN_GROUPS,
+  us: EN_GROUPS,
+  au: EN_GROUPS,
+  sg: EN_GROUPS,
   kr: [
-    { ja: "こんにちは", local: "안녕하세요（アンニョンハセヨ）" },
-    { ja: "ありがとう", local: "감사합니다（カムサハムニダ）" },
-    { ja: "すみません", local: "저기요（チョギヨ）" },
-    { ja: "お願いします", local: "주세요（ジュセヨ）" },
-    { ja: "はい・いいえ", local: "네・아니요（ネ・アニヨ）" },
-    { ja: "いくらですか？", local: "얼마예요?（オルマエヨ）" },
-    { ja: "おいしい", local: "맛있어요（マシッソヨ）" },
-    { ja: "さようなら", local: "안녕히 가세요（アンニョンヒ カセヨ）" },
+    {
+      title: "あいさつ・基本",
+      items: [
+        { ja: "こんにちは", local: "안녕하세요（アンニョンハセヨ）" },
+        { ja: "ありがとう", local: "감사합니다（カムサハムニダ）" },
+        { ja: "すみません（呼びかけ）", local: "저기요（チョギヨ）" },
+        { ja: "ごめんなさい", local: "죄송합니다（チェソンハムニダ）" },
+        { ja: "お願いします（ください）", local: "주세요（ジュセヨ）" },
+        { ja: "はい / いいえ", local: "네 / 아니요（ネ / アニヨ）" },
+        { ja: "さようなら", local: "안녕히 가세요（アンニョンヒ カセヨ）" },
+      ],
+    },
+    {
+      title: "レストラン・食事",
+      items: [
+        { ja: "メニューください", local: "메뉴 주세요（メニュ ジュセヨ）" },
+        { ja: "これください", local: "이거 주세요（イゴ ジュセヨ）" },
+        { ja: "お会計お願いします", local: "계산해 주세요（ケサンヘ ジュセヨ）" },
+        { ja: "おいしい！", local: "맛있어요（マシッソヨ）" },
+        { ja: "乾杯！", local: "건배（コンベ）" },
+      ],
+    },
+    {
+      title: "買い物・移動",
+      items: [
+        { ja: "いくらですか？", local: "얼마예요?（オルマエヨ）" },
+        { ja: "カードで払えますか？", local: "카드 돼요?（カドゥ ドェヨ）" },
+        { ja: "〜はどこですか？", local: "어디예요?（オディエヨ）" },
+        { ja: "トイレはどこ？", local: "화장실 어디예요?（ファジャンシル オディエヨ）" },
+      ],
+    },
+    {
+      title: "困ったとき",
+      items: [
+        { ja: "英語できますか？", local: "영어 할 수 있어요?（ヨンオ ハル ス イッソヨ）" },
+        { ja: "助けて！", local: "도와주세요（トワジュセヨ）" },
+      ],
+    },
   ],
   tw: [
-    { ja: "こんにちは", local: "你好（ニーハオ）" },
-    { ja: "ありがとう", local: "謝謝（シェイシェイ）" },
-    { ja: "すみません", local: "不好意思（ブーハオイースー）" },
-    { ja: "いくらですか？", local: "多少錢？（ドゥオシャオチエン）" },
-    { ja: "はい・いいえ", local: "對・不對（ドゥイ・ブードゥイ）" },
-    { ja: "おいしい", local: "好吃（ハオチー）" },
-    { ja: "英語できますか？", local: "你會説英文嗎？（ニー フイ シュオ インウェン マ）" },
-    { ja: "さようなら", local: "再見（ザイジエン）" },
+    {
+      title: "あいさつ・基本",
+      items: [
+        { ja: "こんにちは", local: "你好（ニーハオ）" },
+        { ja: "ありがとう", local: "謝謝（シェイシェイ）" },
+        { ja: "すみません", local: "不好意思（ブーハオイースー）" },
+        { ja: "ごめんなさい", local: "對不起（ドゥイブチー）" },
+        { ja: "はい / いいえ", local: "對 / 不對（ドゥイ / ブードゥイ）" },
+        { ja: "さようなら", local: "再見（ザイジエン）" },
+      ],
+    },
+    {
+      title: "レストラン・食事",
+      items: [
+        { ja: "メニューください", local: "菜單（ツァイダン）" },
+        { ja: "これください", local: "我要這個（ウォー ヤオ ジェガ）" },
+        { ja: "お会計お願いします", local: "買單（マイダン）" },
+        { ja: "おいしい", local: "好吃（ハオチー）" },
+        { ja: "乾杯！", local: "乾杯（ガンベイ）" },
+      ],
+    },
+    {
+      title: "買い物・移動",
+      items: [
+        { ja: "いくらですか？", local: "多少錢？（ドゥオシャオチエン）" },
+        { ja: "カードで払えますか？", local: "可以刷卡嗎？（クーイー シュアカー マ）" },
+        { ja: "〜はどこですか？", local: "在哪裡？（ザイ ナーリー）" },
+        { ja: "トイレはどこ？", local: "廁所在哪裡？（ツァースオ ザイ ナーリー）" },
+      ],
+    },
+    {
+      title: "困ったとき",
+      items: [
+        { ja: "英語できますか？", local: "你會説英文嗎？（ニー フイ シュオ インウェン マ）" },
+        { ja: "助けて！", local: "救命！（ジウミン）" },
+      ],
+    },
   ],
   th: [
-    { ja: "こんにちは", local: "สวัสดี（サワッディー）" },
-    { ja: "ありがとう", local: "ขอบคุณ（コープクン）" },
-    { ja: "すみません", local: "ขอโทษ（コートート）" },
-    { ja: "いくらですか？", local: "เท่าไหร่？（タオライ）" },
-    { ja: "はい・いいえ", local: "ใช่・ไม่（チャイ・マイ）" },
-    { ja: "おいしい", local: "อร่อย（アロイ）" },
-    { ja: "さようなら", local: "ลาก่อน（ラーコーン）" },
+    {
+      title: "あいさつ・基本",
+      items: [
+        { ja: "こんにちは", local: "สวัสดี（サワッディー）" },
+        { ja: "ありがとう", local: "ขอบคุณ（コープクン）" },
+        { ja: "すみません / ごめん", local: "ขอโทษ（コートート）" },
+        { ja: "はい / いいえ", local: "ใช่ / ไม่（チャイ / マイ）" },
+      ],
+    },
+    {
+      title: "レストラン・食事",
+      items: [
+        { ja: "メニューください", local: "ขอเมนู（コー メニュー）" },
+        { ja: "お会計お願いします", local: "เช็คบิล（チェックビン）" },
+        { ja: "おいしい", local: "อร่อย（アロイ）" },
+        { ja: "辛くしないで", local: "ไม่เผ็ด（マイ ペット）" },
+      ],
+    },
+    {
+      title: "買い物・移動",
+      items: [
+        { ja: "いくらですか？", local: "เท่าไหร่？（タオライ）" },
+        { ja: "高い", local: "แพง（ペーン）" },
+        { ja: "トイレはどこ？", local: "ห้องน้ำอยู่ไหน？（ホンナーム ユー ナイ）" },
+      ],
+    },
+    {
+      title: "困ったとき",
+      items: [
+        { ja: "助けて！", local: "ช่วยด้วย（チュアイ ドゥアイ）" },
+        { ja: "英語できますか？", local: "พูดอังกฤษได้ไหม？（プート アングリット ダイ マイ）" },
+      ],
+    },
   ],
   vn: [
-    { ja: "こんにちは", local: "Xin chào（シンチャオ）" },
-    { ja: "ありがとう", local: "Cảm ơn（カムオン）" },
-    { ja: "すみません", local: "Xin lỗi（シンローイ）" },
-    { ja: "いくらですか？", local: "Bao nhiêu tiền?（バオ ニュー ティエン）" },
-    { ja: "はい・いいえ", local: "Vâng・Không（ヴァン・コン）" },
-    { ja: "おいしい", local: "Ngon（ゴン）" },
-    { ja: "さようなら", local: "Tạm biệt（タム ビエット）" },
+    {
+      title: "あいさつ・基本",
+      items: [
+        { ja: "こんにちは", local: "Xin chào（シンチャオ）" },
+        { ja: "ありがとう", local: "Cảm ơn（カムオン）" },
+        { ja: "すみません / ごめん", local: "Xin lỗi（シンローイ）" },
+        { ja: "はい / いいえ", local: "Vâng / Không（ヴァン / コン）" },
+        { ja: "さようなら", local: "Tạm biệt（タム ビエット）" },
+      ],
+    },
+    {
+      title: "レストラン・食事",
+      items: [
+        { ja: "メニューください", local: "Cho tôi xem thực đơn（チョー トイ セム トゥックドン）" },
+        { ja: "お会計お願いします", local: "Tính tiền（ティン ティエン）" },
+        { ja: "おいしい", local: "Ngon（ゴン）" },
+      ],
+    },
+    {
+      title: "買い物・移動",
+      items: [
+        { ja: "いくらですか？", local: "Bao nhiêu tiền?（バオ ニュー ティエン）" },
+        { ja: "高い", local: "Đắt quá（ダッ クア）" },
+        { ja: "トイレはどこ？", local: "Nhà vệ sinh ở đâu?（ニャー ヴェ シン オ ダウ）" },
+      ],
+    },
+    {
+      title: "困ったとき",
+      items: [
+        { ja: "助けて！", local: "Cứu với!（クー ヴォイ）" },
+        { ja: "英語できますか？", local: "Bạn nói tiếng Anh được không?（バン ノイ ティエン アイン ドゥオック コン）" },
+      ],
+    },
   ],
 };
 
@@ -456,5 +778,5 @@ export function countryInfo(code: string | null | undefined): CountryInfo | null
   const c = code.toLowerCase();
   const base = COUNTRY_INFO[c];
   if (!base) return null;
-  return { ...base, ...(COUNTRY_EXTRA[c] ?? {}), phrases: PHRASES[c] };
+  return { ...base, ...(COUNTRY_EXTRA[c] ?? {}), phraseGroups: PHRASE_GROUPS[c] };
 }
