@@ -104,6 +104,8 @@ function PlaceCard({
           <img
             src={photoUrl(place.photo_ref)}
             alt={place.name}
+            loading="lazy"
+            decoding="async"
             className="size-full object-cover"
           />
         ) : (

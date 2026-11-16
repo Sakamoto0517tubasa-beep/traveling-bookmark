@@ -136,7 +136,7 @@ function SpotView() {
       <div className="relative h-44 bg-navy">
         {spot.photo ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={spot.photo} alt="" className="size-full object-cover" />
+          <img src={spot.photo} alt="" decoding="async" className="size-full object-cover" />
         ) : (
           <div className="flex size-full items-center justify-center" style={{ backgroundColor: meta.color }} />
         )}

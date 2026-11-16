@@ -397,7 +397,7 @@ function SpotCard({
         <div className="relative size-16 shrink-0">
           {spot.photo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={spot.photo} alt="" className="size-16 rounded object-cover" />
+            <img src={spot.photo} alt="" loading="lazy" decoding="async" className="size-16 rounded object-cover" />
           ) : (
             <div
               className="flex size-16 items-center justify-center rounded text-white"
@@ -1210,6 +1210,8 @@ function CountryPhrases({
         <img
           src={flagUrl(code)}
           alt=""
+          loading="lazy"
+          decoding="async"
           className="h-9 w-14 shrink-0 rounded border border-line object-cover"
         />
         <div>

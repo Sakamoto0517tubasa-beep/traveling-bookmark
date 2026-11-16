@@ -124,6 +124,8 @@ export default function AddSpotModal({
                       <img
                         src={`/api/place-photo?ref=${encodeURIComponent(p.photo_ref)}`}
                         alt={p.name}
+                        loading="lazy"
+                        decoding="async"
                         className="size-14 shrink-0 rounded object-cover"
                       />
                     ) : (

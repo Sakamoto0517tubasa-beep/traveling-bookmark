@@ -127,13 +127,15 @@ export default function Home() {
                   <div className="relative h-28 bg-navy">
                     {t.cover_photo ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={t.cover_photo} alt="" className="size-full object-cover" />
+                      <img src={t.cover_photo} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
                     ) : countries[t.id] ? (
                       <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={flagUrl(countries[t.id])}
                           alt=""
+                          loading="lazy"
+                          decoding="async"
                           className="size-full object-cover"
                         />
                         <div className="absolute inset-0 bg-black/15" />

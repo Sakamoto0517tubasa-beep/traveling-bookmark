@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
   return new NextResponse(buf, {
     headers: {
       "Content-Type": res.headers.get("Content-Type") ?? "image/jpeg",
-      "Cache-Control": "public, max-age=86400",
+      // 写真は変わらないので長めにキャッシュ（ブラウザ1週間・CDN30日）。2回目以降は即表示
+      "Cache-Control": "public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400, immutable",
     },
   });
 }
